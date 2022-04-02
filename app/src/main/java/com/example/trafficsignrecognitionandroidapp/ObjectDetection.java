@@ -3,6 +3,7 @@ package com.example.trafficsignrecognitionandroidapp;
 import android.content.res.AssetFileDescriptor;
 import android.content.res.AssetManager;
 import android.graphics.Bitmap;
+import android.util.Log;
 
 import org.opencv.android.Utils;
 import org.opencv.core.Core;
@@ -27,6 +28,7 @@ import java.util.Map;
 import java.util.TreeMap;
 
 public class ObjectDetection {
+    private static String TAG = "ObjectDetection";
 
     private Interpreter interpreter;
 
@@ -36,6 +38,7 @@ public class ObjectDetection {
     private int IMAGE_MEAN = 0;
     private float IMAGE_STD = 255.0f;
     private static final boolean quantized = false;
+    private int threads = 1;
 
     // use GPU in app
     private GpuDelegate gpuDelegate;
@@ -49,7 +52,7 @@ public class ObjectDetection {
         Interpreter.Options options=new Interpreter.Options();
         gpuDelegate = new GpuDelegate();
         options.addDelegate(gpuDelegate);
-        options.setNumThreads(4);
+        options.setNumThreads(threads);
 
         // load model
         interpreter = new Interpreter(loadModelFile(assetManager, modelPath), options);
@@ -85,10 +88,13 @@ public class ObjectDetection {
     }
 
     public Mat recognizeImage(Mat mat_img) {
+        // measure delay
+        long startTime = System.currentTimeMillis();
+
         // rotate image to get portrait image
         Mat mat_img_rotate = new Mat();
         Mat b=mat_img.t();
-        Core.flip(b,mat_img_rotate,0);
+        Core.flip(b,mat_img_rotate,1);
         b.release();
 
         // convert to bitmap
@@ -152,8 +158,11 @@ public class ObjectDetection {
 
         // before return rotate back with 90 degree
         Mat c=mat_img_rotate.t();
-        Core.flip(c,mat_img_rotate,0);
+        Core.flip(c,mat_img,0);
         c.release();
+        long stopTime = System.currentTimeMillis();
+        Log.d(TAG, "Elapsed time was " + (stopTime - startTime) + " miliseconds.");
+
         return mat_img;
     }
 

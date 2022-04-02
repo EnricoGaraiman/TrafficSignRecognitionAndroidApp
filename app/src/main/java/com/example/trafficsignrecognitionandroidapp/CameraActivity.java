@@ -19,9 +19,11 @@ import org.opencv.android.OpenCVLoader;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 
+import java.io.IOException;
+
 public class CameraActivity extends Activity implements CameraBridgeViewBase.CvCameraViewListener2 {
 
-    private static final String TAG="MainActivity";
+    private static final String TAG="CameraActivity";
 
     private Mat mRgba;
     private Mat mGray;
@@ -68,6 +70,16 @@ public class CameraActivity extends Activity implements CameraBridgeViewBase.CvC
         mOpenCvCameraView.setVisibility(SurfaceView.VISIBLE);
         mOpenCvCameraView.setCvCameraViewListener(this);
         mOpenCvCameraView.enableFpsMeter(); // fps
+
+        // get model
+        try{
+            objectDetection=new ObjectDetection(getAssets(),"ssd_mobilenet_v1_1_metadata_1.tflite","labelmap.txt",300);
+            Log.d(TAG,"Model is successfully loaded");
+        }
+        catch (IOException e){
+            Log.d(TAG,"Getting some error");
+            e.printStackTrace();
+        }
     }
 
     @Override
