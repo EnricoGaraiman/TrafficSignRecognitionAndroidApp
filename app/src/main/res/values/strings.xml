@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">TrafficSignRecognitionAndroidApp</string>
+    <string name="real_time_recognition">Real time recognition</string>
+</resources>
