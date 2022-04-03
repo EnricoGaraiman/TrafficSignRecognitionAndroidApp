@@ -40,6 +40,7 @@ public class ObjectDetection {
     private float IMAGE_STD = 255.0f;
     private static final boolean quantized = false;
     private int threads = 1;
+    private float confidence = 0.5F;
 
     // use GPU in app
     private GpuDelegate gpuDelegate;
@@ -140,7 +141,7 @@ public class ObjectDetection {
             float class_value = (float) Array.get(Array.get(predict_class, 0), i);
             float score_value = (float) Array.get(Array.get(score, 0), i);
             // define threshold for score
-            if (score_value > 0.5) {
+            if (score_value > confidence) {
                 Object box1 = Array.get(Array.get(value, 0), i);
                 // multiplying it with original height and width of frame
 
