@@ -3,6 +3,7 @@ package com.example.trafficsignrecognitionandroidapp;
 import android.content.res.AssetFileDescriptor;
 import android.content.res.AssetManager;
 import android.graphics.Bitmap;
+import android.os.AsyncTask;
 import android.util.Log;
 
 import org.opencv.android.Utils;
@@ -46,10 +47,10 @@ public class ObjectDetection {
     private int width = 0;
 
     ObjectDetection(AssetManager assetManager, String modelPath, String labelPath, int inputSize) throws IOException {
-        INPUT_SIZE=inputSize;
+        INPUT_SIZE = inputSize;
 
         // define GPU/CPU and number of threads
-        Interpreter.Options options=new Interpreter.Options();
+        Interpreter.Options options = new Interpreter.Options();
         gpuDelegate = new GpuDelegate();
         options.addDelegate(gpuDelegate);
         options.setNumThreads(threads);
@@ -67,7 +68,7 @@ public class ObjectDetection {
         // create reader and read line by line
         BufferedReader reader = new BufferedReader(new InputStreamReader(assetManager.open(labelPath)));
         String line;
-        while((line=reader.readLine()) != null) {
+        while ((line = reader.readLine()) != null) {
             labelList.add(line);
         }
         reader.close();
@@ -93,13 +94,13 @@ public class ObjectDetection {
 
         // rotate image to get portrait image
         Mat mat_img_rotate = new Mat();
-        Mat b=mat_img.t();
-        Core.flip(b,mat_img_rotate,1);
+        Mat b = mat_img.t();
+        Core.flip(b, mat_img_rotate, 1);
         b.release();
 
         // convert to bitmap
         Bitmap bitmap = null;
-        bitmap=Bitmap.createBitmap(mat_img_rotate.cols(), mat_img_rotate.rows(), Bitmap.Config.ARGB_8888);
+        bitmap = Bitmap.createBitmap(mat_img_rotate.cols(), mat_img_rotate.rows(), Bitmap.Config.ARGB_8888);
         Utils.matToBitmap(mat_img_rotate, bitmap);
 
         // define h and w
@@ -110,7 +111,7 @@ public class ObjectDetection {
         Bitmap scaledBitmap = Bitmap.createScaledBitmap(bitmap, INPUT_SIZE, INPUT_SIZE, false);
 
         // convert bitmap to bytebuffer as model input should be ??
-        ByteBuffer byteBuffer =  convertBitmapToByteBuffer(scaledBitmap);
+        ByteBuffer byteBuffer = convertBitmapToByteBuffer(scaledBitmap);
 
         // define output - boxes, score, classes
         Object[] input = new Object[1];
@@ -118,9 +119,9 @@ public class ObjectDetection {
 
         Map<Integer, Object> output_map = new TreeMap<>();
 
-        float[][][]boxes = new float[1][10][4];// first 10 object detected + 4 coordinates
-        float[][]scores = new float[1][10];// scores
-        float[][]classes = new float[1][10];// scores
+        float[][][] boxes = new float[1][10][4];// first 10 object detected + 4 coordinates
+        float[][] scores = new float[1][10];// scores
+        float[][] classes = new float[1][10];// scores
 
         // add to object map
         output_map.put(0, boxes);
@@ -135,33 +136,33 @@ public class ObjectDetection {
         Object predict_class = output_map.get(1);
         Object score = output_map.get(2);
 
-        for (int i=0;i<10;i++){
-            float class_value=(float) Array.get(Array.get(predict_class,0),i);
-            float score_value=(float) Array.get(Array.get(score,0),i);
+        for (int i = 0; i < 10; i++) {
+            float class_value = (float) Array.get(Array.get(predict_class, 0), i);
+            float score_value = (float) Array.get(Array.get(score, 0), i);
             // define threshold for score
-            if(score_value>0.5){
-                Object box1=Array.get(Array.get(value,0),i);
-                // we are multiplying it with Original height and width of frame
+            if (score_value > 0.5) {
+                Object box1 = Array.get(Array.get(value, 0), i);
+                // multiplying it with original height and width of frame
 
-                float top=(float) Array.get(box1,0)*height;
-                float left=(float) Array.get(box1,1)*width;
-                float bottom=(float) Array.get(box1,2)*height;
-                float right=(float) Array.get(box1,3)*width;
-                // draw rectangle in Original frame //  starting point    // ending point of box  // color of box       thickness
-                Imgproc.rectangle(mat_img_rotate,new Point(left,top),new Point(right,bottom),new Scalar(0, 255, 0, 255),2);
+                float top = (float) Array.get(box1, 0) * height;
+                float left = (float) Array.get(box1, 1) * width;
+                float bottom = (float) Array.get(box1, 2) * height;
+                float right = (float) Array.get(box1, 3) * width;
+                // draw rectangle in Original frame //  starting point    // ending point of box  // color of box      // thickness
+                Imgproc.rectangle(mat_img_rotate, new Point(left, top), new Point(right, bottom), new Scalar(0, 255, 0, 255), 2);
                 // write text on frame
                 // string of class name of object  // starting point                         // color of text           // size of text
-                Imgproc.putText(mat_img_rotate,labelList.get((int) class_value),new Point(left,top),3,1,new Scalar(255, 0, 0, 255),2);
+                Imgproc.putText(mat_img_rotate, labelList.get((int) class_value), new Point(left, top), 3, 1, new Scalar(255, 0, 0, 255), 2);
             }
 
         }
 
         // before return rotate back with 90 degree
-        Mat c=mat_img_rotate.t();
-        Core.flip(c,mat_img,0);
+        Mat c = mat_img_rotate.t();
+        Core.flip(c, mat_img, 0);
         c.release();
         long stopTime = System.currentTimeMillis();
-        Log.d(TAG, "Elapsed time was " + (stopTime - startTime) + " miliseconds.");
+        Log.d(TAG, "Elapsed time was " + (stopTime - startTime) + " milliseconds.");
 
         return mat_img;
     }
@@ -171,29 +172,27 @@ public class ObjectDetection {
 
         // model input
         int size_images = INPUT_SIZE;
-        if(!quantized) {
+        if (!quantized) {
             byteBuffer = ByteBuffer.allocateDirect(size_images * size_images * 3);
-        }
-        else {
+        } else {
             byteBuffer = ByteBuffer.allocateDirect(4 * size_images * size_images * 3);
         }
 
         byteBuffer.order(ByteOrder.nativeOrder());
-        int[] intValues = new int[size_images*size_images];
+        int[] intValues = new int[size_images * size_images];
         bitmap.getPixels(intValues, 0, bitmap.getWidth(), 0, 0, bitmap.getWidth(), bitmap.getHeight());
         int pixel = 0;
         for (int i = 0; i < size_images; ++i) {
-            for(int j = 0; j < size_images; ++j) {
+            for (int j = 0; j < size_images; ++j) {
                 int val = intValues[pixel++];
-                if(!quantized) {
-                    byteBuffer.put((byte) ((val>>16)&0xFF));
-                    byteBuffer.put((byte) ((val>>8)&0xFF));
-                    byteBuffer.put((byte) (val&0xFF));
-                }
-                else {
-                    byteBuffer.putFloat((((val>>16) & 0xFF))/255.0f);
-                    byteBuffer.putFloat((((val>>8) & 0xFF))/255.0f);
-                    byteBuffer.putFloat((((val) & 0xFF))/255.0f);
+                if (!quantized) {
+                    byteBuffer.put((byte) ((val >> 16) & 0xFF));
+                    byteBuffer.put((byte) ((val >> 8) & 0xFF));
+                    byteBuffer.put((byte) (val & 0xFF));
+                } else {
+                    byteBuffer.putFloat((((val >> 16) & 0xFF)) / 255.0f);
+                    byteBuffer.putFloat((((val >> 8) & 0xFF)) / 255.0f);
+                    byteBuffer.putFloat((((val) & 0xFF)) / 255.0f);
                 }
             }
         }

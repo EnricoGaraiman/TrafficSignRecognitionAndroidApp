@@ -23,12 +23,15 @@ import java.io.IOException;
 
 public class CameraActivity extends Activity implements CameraBridgeViewBase.CvCameraViewListener2 {
 
-    private static final String TAG="CameraActivity";
+    private static final String TAG = "CameraActivity";
 
     private Mat mRgba;
     private Mat mGray;
     private CameraBridgeViewBase mOpenCvCameraView;
     private ObjectDetection objectDetection;
+    private String pathModel = "ssd_mobilenet_v1_1_metadata_1.tflite";
+    private String pathLabels = "labelmap.txt";
+    private int modelInputSize = 300;
 
     private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
         @Override
@@ -48,7 +51,7 @@ public class CameraActivity extends Activity implements CameraBridgeViewBase.CvC
     };
 
     public CameraActivity() {
-        Log.i(TAG, "CameraActivity: Instantiace new"+this.getClass());
+        Log.i(TAG, "CameraActivity: Instantiate new" + this.getClass());
     }
 
     @Override
@@ -60,24 +63,23 @@ public class CameraActivity extends Activity implements CameraBridgeViewBase.CvC
         int MY_PERMISSION_REQUEST_CAMERA = 0;
 
         // request permission user camera
-        if(ContextCompat.checkSelfPermission(CameraActivity.this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_DENIED) {
-            ActivityCompat.requestPermissions(CameraActivity.this, new String[] {Manifest.permission.CAMERA}, MY_PERMISSION_REQUEST_CAMERA);
+        if (ContextCompat.checkSelfPermission(CameraActivity.this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_DENIED) {
+            ActivityCompat.requestPermissions(CameraActivity.this, new String[]{Manifest.permission.CAMERA}, MY_PERMISSION_REQUEST_CAMERA);
         }
 
         setContentView(R.layout.activity_camera);
 
-        mOpenCvCameraView=(CameraBridgeViewBase) findViewById(R.id.frame_surface);
+        mOpenCvCameraView = (CameraBridgeViewBase) findViewById(R.id.frame_surface);
         mOpenCvCameraView.setVisibility(SurfaceView.VISIBLE);
         mOpenCvCameraView.setCvCameraViewListener(this);
         mOpenCvCameraView.enableFpsMeter(); // fps
 
         // get model
-        try{
-            objectDetection=new ObjectDetection(getAssets(),"ssd_mobilenet_v1_1_metadata_1.tflite","labelmap.txt",300);
-            Log.d(TAG,"Model is successfully loaded");
-        }
-        catch (IOException e){
-            Log.d(TAG,"Getting some error");
+        try {
+            objectDetection = new ObjectDetection(getAssets(), pathModel, pathLabels, modelInputSize);
+            Log.d(TAG, "Model is successfully loaded");
+        } catch (IOException e) {
+            Log.d(TAG, "Getting some error");
             e.printStackTrace();
         }
     }
@@ -90,8 +92,7 @@ public class CameraActivity extends Activity implements CameraBridgeViewBase.CvC
         if (OpenCVLoader.initDebug()) {
             Log.d(TAG, "Opencv: initialized success ");
             mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
-        }
-        else {
+        } else {
             Log.d(TAG, "Opencv: initialized fail");
             OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_4_0, this, mLoaderCallback);
         }
@@ -101,7 +102,7 @@ public class CameraActivity extends Activity implements CameraBridgeViewBase.CvC
     protected void onPause() {
         super.onPause();
 
-        if(mOpenCvCameraView != null) {
+        if (mOpenCvCameraView != null) {
             mOpenCvCameraView.disableView();
         }
     }
@@ -109,7 +110,7 @@ public class CameraActivity extends Activity implements CameraBridgeViewBase.CvC
     public void onDestroy() {
         super.onDestroy();
 
-        if(mOpenCvCameraView != null) {
+        if (mOpenCvCameraView != null) {
             mOpenCvCameraView.disableView();
         }
     }
@@ -119,17 +120,17 @@ public class CameraActivity extends Activity implements CameraBridgeViewBase.CvC
         mGray = new Mat(height, width, CvType.CV_8UC1);
     }
 
-    public void onCameraViewStopped(){
+    public void onCameraViewStopped() {
         mRgba.release();
     }
 
-    public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame){
-        mRgba=inputFrame.rgba();
-        mGray=inputFrame.gray();
+    public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
+        mRgba = inputFrame.rgba();
+        mGray = inputFrame.gray();
 
         // recognize
-        Mat out=new Mat();
-        out=objectDetection.recognizeImage(mRgba);
+        Mat out = new Mat();
+        out = objectDetection.recognizeImage(mRgba);
 
         return out;
     }

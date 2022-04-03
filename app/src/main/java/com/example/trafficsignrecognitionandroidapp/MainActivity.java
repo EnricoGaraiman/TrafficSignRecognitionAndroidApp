@@ -13,12 +13,10 @@ import org.opencv.android.OpenCVLoader;
 public class MainActivity extends AppCompatActivity {
     private static String TAG = "MainActivity";
 
-    static
-    {
-        if(OpenCVLoader.initDebug()) {
+    static {
+        if (OpenCVLoader.initDebug()) {
             Log.d(TAG, "Opencv load");
-        }
-        else {
+        } else {
             Log.d(TAG, "Opencv fail");
         }
     }
@@ -30,7 +28,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        camera_button=findViewById(R.id.camera_button);
+        camera_button = findViewById(R.id.camera_button);
         camera_button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
