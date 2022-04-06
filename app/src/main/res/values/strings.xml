@@ -1,4 +1,7 @@
 <resources>
     <string name="app_name">TrafficSignRecognitionAndroidApp</string>
     <string name="real_time_recognition">Real time recognition</string>
+    <string name="pick_a_image">Pick a image</string>
+    <string name="select_a_image">Select a image</string>
+    <string name="image_view">Image view</string>
 </resources>

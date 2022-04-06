@@ -41,6 +41,9 @@ public class ObjectDetection {
     private static final boolean quantized = false;
     private int threads = 1;
     private float confidence = 0.5F;
+    private String pathModel = "test2.tflite";
+    private String pathLabels = "labelmap.txt";
+    private int modelInputSize = 320;
 
     // use GPU in app
     private GpuDelegate gpuDelegate;
@@ -52,8 +55,8 @@ public class ObjectDetection {
 
         // define GPU/CPU and number of threads
         Interpreter.Options options = new Interpreter.Options();
-        gpuDelegate = new GpuDelegate();
-        options.addDelegate(gpuDelegate);
+//        gpuDelegate = new GpuDelegate();
+//        options.addDelegate(gpuDelegate);
         options.setNumThreads(threads);
 
         // load model
@@ -95,9 +98,9 @@ public class ObjectDetection {
 
         // rotate image to get portrait image
         Mat mat_img_rotate = new Mat();
-        Mat b = mat_img.t();
-        Core.flip(b, mat_img_rotate, 1);
-        b.release();
+        Mat a = mat_img.t();
+        Core.flip(a, mat_img_rotate, 1);
+        a.release();
 
         // convert to bitmap
         Bitmap bitmap = null;
@@ -125,17 +128,17 @@ public class ObjectDetection {
         float[][] classes = new float[1][10];// scores
 
         // add to object map
-        output_map.put(0, boxes);
-        output_map.put(1, scores);
-        output_map.put(2, classes);
+        output_map.put(1, boxes);
+        output_map.put(0, scores);
+        output_map.put(3, classes);
 
         // prediction
         interpreter.runForMultipleInputsOutputs(input, output_map);
 
         // draw boxex
-        Object value = output_map.get(0);
-        Object predict_class = output_map.get(1);
-        Object score = output_map.get(2);
+        Object value = output_map.get(1);
+        Object predict_class = output_map.get(0);
+        Object score = output_map.get(3);
 
         for (int i = 0; i < 10; i++) {
             float class_value = (float) Array.get(Array.get(predict_class, 0), i);
@@ -159,9 +162,9 @@ public class ObjectDetection {
         }
 
         // before return rotate back with 90 degree
-        Mat c = mat_img_rotate.t();
-        Core.flip(c, mat_img, 0);
-        c.release();
+        Mat b = mat_img_rotate.t();
+        Core.flip(b, mat_img, 0);
+        b.release();
         long stopTime = System.currentTimeMillis();
         Log.d(TAG, "Elapsed time was " + (stopTime - startTime) + " milliseconds.");
 
@@ -173,7 +176,7 @@ public class ObjectDetection {
 
         // model input
         int size_images = INPUT_SIZE;
-        if (!quantized) {
+        if (quantized) {
             byteBuffer = ByteBuffer.allocateDirect(size_images * size_images * 3);
         } else {
             byteBuffer = ByteBuffer.allocateDirect(4 * size_images * size_images * 3);
@@ -186,7 +189,7 @@ public class ObjectDetection {
         for (int i = 0; i < size_images; ++i) {
             for (int j = 0; j < size_images; ++j) {
                 int val = intValues[pixel++];
-                if (!quantized) {
+                if (quantized) {
                     byteBuffer.put((byte) ((val >> 16) & 0xFF));
                     byteBuffer.put((byte) ((val >> 8) & 0xFF));
                     byteBuffer.put((byte) (val & 0xFF));
@@ -199,6 +202,75 @@ public class ObjectDetection {
         }
 
         return byteBuffer;
+    }
+
+    public Mat recognizePhoto(Mat mat_img) {
+        // measure delay
+        long startTime = System.currentTimeMillis();
+
+        // convert to bitmap
+        Bitmap bitmap = null;
+        bitmap = Bitmap.createBitmap(mat_img.cols(), mat_img.rows(), Bitmap.Config.ARGB_8888);
+        Utils.matToBitmap(mat_img, bitmap);
+
+        // define h and w
+        height = bitmap.getHeight();
+        width = bitmap.getWidth();
+
+        // scale to input size of model
+        Bitmap scaledBitmap = Bitmap.createScaledBitmap(bitmap, INPUT_SIZE, INPUT_SIZE, false);
+
+        // convert bitmap to bytebuffer as model input should be ??
+        ByteBuffer byteBuffer = convertBitmapToByteBuffer(scaledBitmap);
+
+        // define output - boxes, score, classes
+        Object[] input = new Object[1];
+        input[0] = byteBuffer;
+
+        Map<Integer, Object> output_map = new TreeMap<>();
+
+        float[][][] boxes = new float[1][10][4];// first 10 object detected + 4 coordinates
+        float[][] scores = new float[1][10];// scores
+        float[][] classes = new float[1][10];// scores
+
+        // add to object map
+        output_map.put(1, boxes);
+        output_map.put(0, scores);
+        output_map.put(3, classes);
+
+        // prediction
+        interpreter.runForMultipleInputsOutputs(input, output_map);
+
+        // draw boxex
+        Object value = output_map.get(1);
+        Object predict_class = output_map.get(0);
+        Object score = output_map.get(3);
+
+        for (int i = 0; i < 10; i++) {
+            float class_value = (float) Array.get(Array.get(predict_class, 0), i);
+            float score_value = (float) Array.get(Array.get(score, 0), i);
+            // define threshold for score
+            if (score_value > confidence) {
+                Object box1 = Array.get(Array.get(value, 0), i);
+                // multiplying it with original height and width of frame
+
+                float top = (float) Array.get(box1, 0) * height;
+                float left = (float) Array.get(box1, 1) * width;
+                float bottom = (float) Array.get(box1, 2) * height;
+                float right = (float) Array.get(box1, 3) * width;
+                // draw rectangle in Original frame //  starting point    // ending point of box  // color of box      // thickness
+                Imgproc.rectangle(mat_img, new Point(left, top), new Point(right, bottom), new Scalar(0, 255, 0, 255), 2);
+                // write text on frame
+                // string of class name of object  // starting point                         // color of text           // size of text
+                Imgproc.putText(mat_img, labelList.get((int) class_value), new Point(left, top), 3, 1, new Scalar(255, 0, 0, 255), 2);
+            }
+
+        }
+
+        long stopTime = System.currentTimeMillis();
+        Log.d(TAG, "Elapsed time was " + (stopTime - startTime) + " milliseconds.");
+
+        return mat_img;
     }
 
 }
