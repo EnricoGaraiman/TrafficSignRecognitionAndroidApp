@@ -20,18 +20,18 @@ import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 
 import java.io.IOException;
+import java.util.concurrent.CompletableFuture;
 
 public class CameraActivity extends Activity implements CameraBridgeViewBase.CvCameraViewListener2 {
 
     private static final String TAG = "CameraActivity";
 
     private Mat mRgba;
-    private Mat mGray;
     private CameraBridgeViewBase mOpenCvCameraView;
     private ObjectDetection objectDetection;
-    private String pathModel = "test2.tflite";
+    private String pathModel = "ssd_mobilenet_v1_1_metadata_1.tflite";
     private String pathLabels = "labelmap.txt";
-    private int modelInputSize = 320;
+    private int modelInputSize = 300;
 
     private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
         @Override
@@ -69,10 +69,11 @@ public class CameraActivity extends Activity implements CameraBridgeViewBase.CvC
 
         setContentView(R.layout.activity_camera);
 
-        mOpenCvCameraView = (CameraBridgeViewBase) findViewById(R.id.frame_surface);
+        mOpenCvCameraView = findViewById(R.id.frame_surface);
         mOpenCvCameraView.setVisibility(SurfaceView.VISIBLE);
         mOpenCvCameraView.setCvCameraViewListener(this);
         mOpenCvCameraView.enableFpsMeter(); // fps
+//        mOpenCvCameraView.setMaxFrameSize(50, 50); // max frame size improve FPS, reduce acc
 
         // get model
         try {
@@ -117,7 +118,6 @@ public class CameraActivity extends Activity implements CameraBridgeViewBase.CvC
 
     public void onCameraViewStarted(int width, int height) {
         mRgba = new Mat(height, width, CvType.CV_8UC4);
-        mGray = new Mat(height, width, CvType.CV_8UC1);
     }
 
     public void onCameraViewStopped() {
@@ -125,13 +125,25 @@ public class CameraActivity extends Activity implements CameraBridgeViewBase.CvC
     }
 
     public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
-        mRgba = inputFrame.rgba();
-        mGray = inputFrame.gray();
-
-        // recognize
-        Mat out = new Mat();
-        out = objectDetection.recognizeImage(mRgba);
-
-        return out;
+//        mRgba = inputFrame.rgba();
+//
+//        // recognize
+//        Mat out = new Mat();
+//        ObjectDetection.drawBoxes(objectDetection.recognizeImage(mRgba), mRgba);
+//
+//        return out;
+        return null; // i implement async detection with function onCameraFrameAsync
     }
+
+    @Override
+    public CompletableFuture<?> onCameraFrameAsync(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
+        Log.d(TAG, "onCameraFrameAsync: Get frame and send to detection");
+
+        // get frame for detection on separate thread -> unblocking UI
+        return CompletableFuture.supplyAsync(() -> {
+            mRgba = inputFrame.rgba();
+            return objectDetection.recognizeImage(mRgba);
+        });
+    }
+
 }

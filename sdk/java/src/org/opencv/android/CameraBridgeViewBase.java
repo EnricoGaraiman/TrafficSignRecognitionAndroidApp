@@ -1,12 +1,15 @@
 package org.opencv.android;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import org.opencv.BuildConfig;
 import org.opencv.R;
 import org.opencv.core.Mat;
 import org.opencv.core.Size;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
@@ -29,14 +32,14 @@ import android.view.SurfaceView;
  */
 public abstract class CameraBridgeViewBase extends SurfaceView implements SurfaceHolder.Callback {
 
-    private static final String TAG = "CameraBridge";
+    protected static final String TAG = "CameraBridge";
     protected static final int MAX_UNSPECIFIED = -1;
     private static final int STOPPED = 0;
     private static final int STARTED = 1;
 
     private int mState = STOPPED;
-    private Bitmap mCacheBitmap;
-    private CvCameraViewListener2 mListener;
+    protected Bitmap mCacheBitmap;
+    protected CvCameraViewListener2 mListener;
     private boolean mSurfaceExist;
     private final Object mSyncObject = new Object();
 
@@ -134,6 +137,8 @@ public abstract class CameraBridgeViewBase extends SurfaceView implements Surfac
          * TODO: pass the parameters specifying the format of the frame (BPP, YUV or RGB and etc)
          */
         public Mat onCameraFrame(CvCameraViewFrame inputFrame);
+
+        public CompletableFuture<?> onCameraFrameAsync(CvCameraViewFrame inputFrame);
     };
 
     protected class CvCameraViewListenerAdapter implements CvCameraViewListener2  {
@@ -163,6 +168,11 @@ public abstract class CameraBridgeViewBase extends SurfaceView implements Surfac
             };
 
             return result;
+        }
+
+        @SuppressLint("NewApi")
+        public CompletableFuture<?> onCameraFrameAsync(CvCameraViewFrame inputFrame){
+            return CompletableFuture.supplyAsync(() -> onCameraFrame(inputFrame));
         }
 
         public void setFrameFormat(int format) {

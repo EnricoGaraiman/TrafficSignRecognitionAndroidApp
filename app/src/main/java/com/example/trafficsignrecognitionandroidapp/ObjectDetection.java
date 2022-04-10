@@ -33,22 +33,22 @@ public class ObjectDetection {
 
     private Interpreter interpreter;
 
-    private List<String> labelList;
+    private static List<String> labelList;
     private int INPUT_SIZE;
     private int PIXEL_SIZE = 3; // rgb
     private int IMAGE_MEAN = 0;
     private float IMAGE_STD = 255.0f;
-    private static final boolean quantized = false;
+    private static final boolean quantized = true;
     private int threads = 1;
-    private float confidence = 0.5F;
+    private static float confidence = 0.5F;
     private String pathModel = "test2.tflite";
     private String pathLabels = "labelmap.txt";
     private int modelInputSize = 320;
 
     // use GPU in app
     private GpuDelegate gpuDelegate;
-    private int height = 0;
-    private int width = 0;
+    private static int height = 0;
+    private static int width = 0;
 
     ObjectDetection(AssetManager assetManager, String modelPath, String labelPath, int inputSize) throws IOException {
         INPUT_SIZE = inputSize;
@@ -92,7 +92,46 @@ public class ObjectDetection {
         return fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, length);
     }
 
-    public Mat recognizeImage(Mat mat_img) {
+    public static Mat drawBoxes(Map<Integer, Object> output_map, Mat mat_img){
+        // rotate image to get portrait image
+        Mat mat_img_rotate = new Mat();
+        Mat a = mat_img.t();
+        Core.flip(a, mat_img_rotate, 1);
+        a.release();
+
+        Object value = output_map.get(0);
+        Object predict_class = output_map.get(1);
+        Object score = output_map.get(2);
+
+        for (int i = 0; i < 10; i++) {
+            float class_value = (float) Array.get(Array.get(predict_class, 0), i);
+            float score_value = (float) Array.get(Array.get(score, 0), i);
+            // define threshold for score
+            if (score_value > confidence) {
+                Object box1 = Array.get(Array.get(value, 0), i);
+                // multiplying it with original height and width of frame
+
+                float top = (float) Array.get(box1, 0) * height;
+                float left = (float) Array.get(box1, 1) * width;
+                float bottom = (float) Array.get(box1, 2) * height;
+                float right = (float) Array.get(box1, 3) * width;
+                // draw rectangle in Original frame //  starting point    // ending point of box  // color of box      // thickness
+                Imgproc.rectangle(mat_img_rotate, new Point(left, top), new Point(right, bottom), new Scalar(0, 255, 0, 255), 2);
+                // write text on frame
+                // string of class name of object  // starting point                         // color of text           // size of text
+                Imgproc.putText(mat_img_rotate, labelList.get((int) class_value), new Point(left, top), 3, 1, new Scalar(255, 0, 0, 255), 2);
+            }
+
+        }
+
+        // before return rotate back with 90 degree
+        Mat b = mat_img_rotate.t();
+        Core.flip(b, mat_img, 0);
+        b.release();
+        return mat_img;
+    }
+
+    public Map<Integer, Object> recognizeImage(Mat mat_img) {
         // measure delay
         long startTime = System.currentTimeMillis();
 
@@ -128,47 +167,21 @@ public class ObjectDetection {
         float[][] classes = new float[1][10];// scores
 
         // add to object map
-        output_map.put(1, boxes);
-        output_map.put(0, scores);
-        output_map.put(3, classes);
+        output_map.put(0, boxes);
+        output_map.put(1, scores);
+        output_map.put(2, classes);
 
         // prediction
         interpreter.runForMultipleInputsOutputs(input, output_map);
-
-        // draw boxex
-        Object value = output_map.get(1);
-        Object predict_class = output_map.get(0);
-        Object score = output_map.get(3);
-
-        for (int i = 0; i < 10; i++) {
-            float class_value = (float) Array.get(Array.get(predict_class, 0), i);
-            float score_value = (float) Array.get(Array.get(score, 0), i);
-            // define threshold for score
-            if (score_value > confidence) {
-                Object box1 = Array.get(Array.get(value, 0), i);
-                // multiplying it with original height and width of frame
-
-                float top = (float) Array.get(box1, 0) * height;
-                float left = (float) Array.get(box1, 1) * width;
-                float bottom = (float) Array.get(box1, 2) * height;
-                float right = (float) Array.get(box1, 3) * width;
-                // draw rectangle in Original frame //  starting point    // ending point of box  // color of box      // thickness
-                Imgproc.rectangle(mat_img_rotate, new Point(left, top), new Point(right, bottom), new Scalar(0, 255, 0, 255), 2);
-                // write text on frame
-                // string of class name of object  // starting point                         // color of text           // size of text
-                Imgproc.putText(mat_img_rotate, labelList.get((int) class_value), new Point(left, top), 3, 1, new Scalar(255, 0, 0, 255), 2);
-            }
-
-        }
-
-        // before return rotate back with 90 degree
-        Mat b = mat_img_rotate.t();
-        Core.flip(b, mat_img, 0);
-        b.release();
+//        try {
+//            Thread.sleep(1000);
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        }
         long stopTime = System.currentTimeMillis();
         Log.d(TAG, "Elapsed time was " + (stopTime - startTime) + " milliseconds.");
 
-        return mat_img;
+        return output_map;
     }
 
     private ByteBuffer convertBitmapToByteBuffer(Bitmap bitmap) {
