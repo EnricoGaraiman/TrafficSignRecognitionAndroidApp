@@ -29,9 +29,9 @@ public class CameraActivity extends Activity implements CameraBridgeViewBase.CvC
     private Mat mRgba;
     private CameraBridgeViewBase mOpenCvCameraView;
     private ObjectDetection objectDetection;
-    private String pathModel = "ssd_mobilenet_v1_1_metadata_1.tflite";
+    private String pathModel = "nlcnn_model_99_64.tflite";
     private String pathLabels = "labelmap.txt";
-    private int modelInputSize = 300;
+    private int modelInputSize = 48;
 
     private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
         @Override

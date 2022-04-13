@@ -22,8 +22,10 @@ import java.io.InputStreamReader;
 import java.lang.reflect.Array;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.FloatBuffer;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -34,16 +36,17 @@ public class ObjectDetection {
     private Interpreter interpreter;
 
     private static List<String> labelList;
-    private int INPUT_SIZE;
-    private int PIXEL_SIZE = 3; // rgb
-    private int IMAGE_MEAN = 0;
-    private float IMAGE_STD = 255.0f;
-    private static final boolean quantized = true;
+    private int inputSize;
+    private int pixelSize = 3; // rgb
+//    private int IMAGE_MEAN = 0;
+//    private float IMAGE_STD = 255.0f;
+    private static final boolean quantized = false;
     private int threads = 1;
     private static float confidence = 0.5F;
-    private String pathModel = "test2.tflite";
-    private String pathLabels = "labelmap.txt";
-    private int modelInputSize = 320;
+    private int numberOfClasses;
+//    private String pathModel = "nlcnn_model_99_64.tflite";
+//    private String pathLabels = "labelmap.txt";
+//    private int modelInputSize = 48;
 
     // use GPU in app
     private GpuDelegate gpuDelegate;
@@ -51,7 +54,7 @@ public class ObjectDetection {
     private static int width = 0;
 
     ObjectDetection(AssetManager assetManager, String modelPath, String labelPath, int inputSize) throws IOException {
-        INPUT_SIZE = inputSize;
+        this.inputSize = inputSize;
 
         // define GPU/CPU and number of threads
         Interpreter.Options options = new Interpreter.Options();
@@ -64,6 +67,9 @@ public class ObjectDetection {
 
         // load labels
         labelList = loadLabels(assetManager, labelPath);
+
+        // number of classes
+        numberOfClasses = labelList.size();
     }
 
     private List<String> loadLabels(AssetManager assetManager, String labelPath) throws IOException {
@@ -92,16 +98,16 @@ public class ObjectDetection {
         return fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, length);
     }
 
-    public static Mat drawBoxes(Map<Integer, Object> output_map, Mat mat_img){
+    public static Mat drawBoxes(Map<Integer, Object> outputMap, Mat mat_img){
         // rotate image to get portrait image
         Mat mat_img_rotate = new Mat();
         Mat a = mat_img.t();
         Core.flip(a, mat_img_rotate, 1);
         a.release();
 
-        Object value = output_map.get(0);
-        Object predict_class = output_map.get(1);
-        Object score = output_map.get(2);
+        Object value = outputMap.get(0);
+        Object predict_class = outputMap.get(1);
+        Object score = outputMap.get(2);
 
         for (int i = 0; i < 10; i++) {
             float class_value = (float) Array.get(Array.get(predict_class, 0), i);
@@ -132,7 +138,7 @@ public class ObjectDetection {
     }
 
     public Map<Integer, Object> recognizeImage(Mat mat_img) {
-        // measure delay
+        // measure latency
         long startTime = System.currentTimeMillis();
 
         // rotate image to get portrait image
@@ -151,28 +157,24 @@ public class ObjectDetection {
         width = bitmap.getWidth();
 
         // scale to input size of model
-        Bitmap scaledBitmap = Bitmap.createScaledBitmap(bitmap, INPUT_SIZE, INPUT_SIZE, false);
+        Bitmap scaledBitmap = Bitmap.createScaledBitmap(bitmap, inputSize, inputSize, false);
 
-        // convert bitmap to bytebuffer as model input should be ??
+        // convert bitmap to bytebuffer -> input
         ByteBuffer byteBuffer = convertBitmapToByteBuffer(scaledBitmap);
-
-        // define output - boxes, score, classes
         Object[] input = new Object[1];
         input[0] = byteBuffer;
 
-        Map<Integer, Object> output_map = new TreeMap<>();
-
-        float[][][] boxes = new float[1][10][4];// first 10 object detected + 4 coordinates
-        float[][] scores = new float[1][10];// scores
-        float[][] classes = new float[1][10];// scores
-
-        // add to object map
-        output_map.put(0, boxes);
-        output_map.put(1, scores);
-        output_map.put(2, classes);
+        // output
+        Map<Integer, Object> outputMap = new HashMap<>();
+        outputMap.put(0, new float[1][numberOfClasses]);
 
         // prediction
-        interpreter.runForMultipleInputsOutputs(input, output_map);
+        interpreter.runForMultipleInputsOutputs(input, outputMap);
+
+        Log.d(TAG, "recognizeImage: a iesit? ");
+//        Log.d(TAG, "recognizeImage: " + getIndexOfLargest(outputMap.get(0))));
+        Log.e(TAG, "recognizeImage: " + labelList.get(getIndexOfLargest((float[]) Array.get(outputMap.get(0), 0))));
+//        Log.d(TAG, "recognizeImage: out? " + getIndexOfLargest(outputMap.get(0)));
 //        try {
 //            Thread.sleep(1000);
 //        } catch (InterruptedException e) {
@@ -181,26 +183,36 @@ public class ObjectDetection {
         long stopTime = System.currentTimeMillis();
         Log.d(TAG, "Elapsed time was " + (stopTime - startTime) + " milliseconds.");
 
-        return output_map;
+//        return outputMap;
+        Map<Integer, Object> output_map = new TreeMap<>();
+
+                float[][][] boxes = new float[1][10][4];// first 10 object detected + 4 coordinates
+        float[][] scores = new float[1][10];// scores
+        float[][] classes = new float[1][10];// classes
+
+        // add to object map
+        output_map.put(0, boxes);
+        output_map.put(1, scores);
+        output_map.put(2, classes);
+        return output_map; // schimba
     }
 
     private ByteBuffer convertBitmapToByteBuffer(Bitmap bitmap) {
         ByteBuffer byteBuffer;
 
         // model input
-        int size_images = INPUT_SIZE;
         if (quantized) {
-            byteBuffer = ByteBuffer.allocateDirect(size_images * size_images * 3);
+            byteBuffer = ByteBuffer.allocateDirect(inputSize * inputSize * pixelSize);
         } else {
-            byteBuffer = ByteBuffer.allocateDirect(4 * size_images * size_images * 3);
+            byteBuffer = ByteBuffer.allocateDirect(4 * inputSize * inputSize * pixelSize);
         }
 
         byteBuffer.order(ByteOrder.nativeOrder());
-        int[] intValues = new int[size_images * size_images];
+        int[] intValues = new int[inputSize * inputSize];
         bitmap.getPixels(intValues, 0, bitmap.getWidth(), 0, 0, bitmap.getWidth(), bitmap.getHeight());
         int pixel = 0;
-        for (int i = 0; i < size_images; ++i) {
-            for (int j = 0; j < size_images; ++j) {
+        for (int i = 0; i < inputSize; ++i) {
+            for (int j = 0; j < inputSize; ++j) {
                 int val = intValues[pixel++];
                 if (quantized) {
                     byteBuffer.put((byte) ((val >> 16) & 0xFF));
@@ -217,6 +229,18 @@ public class ObjectDetection {
         return byteBuffer;
     }
 
+    public int getIndexOfLargest( float[] array )
+    {
+        if ( array == null || array.length == 0 ) return -1; // null or empty
+
+        int largest = 0;
+        for ( int i = 1; i < array.length; i++ )
+        {
+            if ( array[i] > array[largest] ) largest = i;
+        }
+        return largest; // position of the first largest found
+    }
+
     public Mat recognizePhoto(Mat mat_img) {
         // measure delay
         long startTime = System.currentTimeMillis();
@@ -231,7 +255,7 @@ public class ObjectDetection {
         width = bitmap.getWidth();
 
         // scale to input size of model
-        Bitmap scaledBitmap = Bitmap.createScaledBitmap(bitmap, INPUT_SIZE, INPUT_SIZE, false);
+        Bitmap scaledBitmap = Bitmap.createScaledBitmap(bitmap, inputSize, inputSize, false);
 
         // convert bitmap to bytebuffer as model input should be ??
         ByteBuffer byteBuffer = convertBitmapToByteBuffer(scaledBitmap);
@@ -240,24 +264,24 @@ public class ObjectDetection {
         Object[] input = new Object[1];
         input[0] = byteBuffer;
 
-        Map<Integer, Object> output_map = new TreeMap<>();
+        Map<Integer, Object> outputMap = new TreeMap<>();
 
         float[][][] boxes = new float[1][10][4];// first 10 object detected + 4 coordinates
         float[][] scores = new float[1][10];// scores
         float[][] classes = new float[1][10];// scores
 
         // add to object map
-        output_map.put(1, boxes);
-        output_map.put(0, scores);
-        output_map.put(3, classes);
+        outputMap.put(1, boxes);
+        outputMap.put(0, scores);
+        outputMap.put(3, classes);
 
         // prediction
-        interpreter.runForMultipleInputsOutputs(input, output_map);
+        interpreter.runForMultipleInputsOutputs(input, outputMap);
 
         // draw boxex
-        Object value = output_map.get(1);
-        Object predict_class = output_map.get(0);
-        Object score = output_map.get(3);
+        Object value = outputMap.get(1);
+        Object predict_class = outputMap.get(0);
+        Object score = outputMap.get(3);
 
         for (int i = 0; i < 10; i++) {
             float class_value = (float) Array.get(Array.get(predict_class, 0), i);
