@@ -29,9 +29,11 @@ public class CameraActivity extends Activity implements CameraBridgeViewBase.CvC
     private Mat mRgba;
     private CameraBridgeViewBase mOpenCvCameraView;
     private ObjectDetection objectDetection;
-    private String pathModel = "nlcnn_model_99_64.tflite";
+//    private String pathModel = "nlcnn_model_99_64.tflite";
+    private String pathModel = "yolov5s.tflite";
     private String pathLabels = "labelmap.txt";
-    private int modelInputSize = 48;
+//    private int modelInputSize = 48;
+    private int modelInputSize = 640;
 
     private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
         @Override
@@ -73,7 +75,7 @@ public class CameraActivity extends Activity implements CameraBridgeViewBase.CvC
         mOpenCvCameraView.setVisibility(SurfaceView.VISIBLE);
         mOpenCvCameraView.setCvCameraViewListener(this);
         mOpenCvCameraView.enableFpsMeter(); // fps
-//        mOpenCvCameraView.setMaxFrameSize(50, 50); // max frame size improve FPS, reduce acc
+        mOpenCvCameraView.setMaxFrameSize(640, 640); // max frame size improve FPS, reduce acc
 
         // get model
         try {
@@ -129,7 +131,7 @@ public class CameraActivity extends Activity implements CameraBridgeViewBase.CvC
 //
 //        // recognize
 //        Mat out = new Mat();
-//        ObjectDetection.drawBoxes(objectDetection.recognizeImage(mRgba), mRgba);
+//        ObjectDetection.drawBoxes(objectDetection.recognizeFrame(mRgba), mRgba);
 //
 //        return out;
         return null; // i implement async detection with function onCameraFrameAsync
@@ -142,7 +144,7 @@ public class CameraActivity extends Activity implements CameraBridgeViewBase.CvC
         // get frame for detection on separate thread -> unblocking UI
         return CompletableFuture.supplyAsync(() -> {
             mRgba = inputFrame.rgba();
-            return objectDetection.recognizeImage(mRgba);
+            return objectDetection.recognizeFrame(mRgba);
         });
     }
 

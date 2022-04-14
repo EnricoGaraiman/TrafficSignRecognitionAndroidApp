@@ -25,9 +25,9 @@ public class PickActivity extends AppCompatActivity {
     private ObjectDetection objectDetection;
     int SELECT_PICTURE = 200;
 
-    private String pathModel = "nlcnn_model_99_64.tflite";
+    private String pathModel = "yolov5s.tflite";
     private String pathLabels = "labelmap.txt";
-    private int modelInputSize = 48;
+    private int modelInputSize = 640;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

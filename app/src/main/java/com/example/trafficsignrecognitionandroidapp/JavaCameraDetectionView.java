@@ -9,6 +9,7 @@ import android.util.Log;
 import org.opencv.BuildConfig;
 import org.opencv.android.JavaCameraView;
 import org.opencv.android.Utils;
+import org.opencv.core.Core;
 import org.opencv.core.Mat;
 
 import java.util.Map;
@@ -151,8 +152,18 @@ public class JavaCameraDetectionView extends JavaCameraView {
             // draw last prediction -> remove blinking effect
             if (lastDetection != null){
                 // draw box on current frame, not frame used for detection
-                modified = ObjectDetection.drawBoxes(lastDetection,
-                        modified);
+                Mat mat_img_rotate = new Mat();
+                Mat a = modified.t();
+                Core.flip(a, mat_img_rotate, 1);
+                a.release();
+
+                ObjectDetection.drawBoxes(lastDetection,
+                        mat_img_rotate);
+
+                // before return rotate back with 90 degree
+                Mat b = mat_img_rotate.t();
+                Core.flip(b, modified, 0);
+                b.release();
             }
         }
 
