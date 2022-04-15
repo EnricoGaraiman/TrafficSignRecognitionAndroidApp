@@ -4,19 +4,34 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:gravity="center"
+    android:gravity="center|top"
+    android:orientation="vertical"
     tools:context=".PickActivity">
-
-    <Button
-        android:id="@+id/select_button"
-        android:layout_width="wrap_content"
-        android:layout_height="50dp"
-        android:text="@string/select_a_image" />
 
     <ImageView
         android:id="@+id/image_view"
         android:layout_width="match_parent"
-        android:layout_height="476dp"
+        android:layout_height="400dp"
+        android:baselineAligned="false"
         android:contentDescription="@string/image_view" />
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="223dp">
+
+        <TextView
+            android:id="@+id/textView"
+            android:layout_width="325dp"
+            android:layout_height="21dp"
+            android:text="Latence"
+            tools:layout_editor_absoluteX="41dp"
+            tools:layout_editor_absoluteY="33dp" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <Button
+        android:id="@+id/select_button"
+        android:layout_width="190dp"
+        android:layout_height="70dp"
+        android:text="@string/select_a_image" />
 
 </LinearLayout>

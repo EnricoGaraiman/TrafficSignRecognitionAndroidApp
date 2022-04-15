@@ -61,6 +61,7 @@ public class ObjectDetection {
             int recognitionInputSize
     ) throws IOException {
         this.detectionInputSize = detectionInputSize;
+        this.recognitionInputSize = recognitionInputSize;
 
         // define GPU/CPU and number of threads
         Interpreter.Options options = new Interpreter.Options();
@@ -207,7 +208,7 @@ public class ObjectDetection {
         long startTime = System.currentTimeMillis();
 
         // convert to bitmap
-        Bitmap bitmap = null;
+        Bitmap bitmap;
         bitmap = Bitmap.createBitmap(mat_img.cols(), mat_img.rows(), Bitmap.Config.ARGB_8888);
         Utils.matToBitmap(mat_img, bitmap);
 
