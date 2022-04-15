@@ -25,9 +25,11 @@ public class PickActivity extends AppCompatActivity {
     private ObjectDetection objectDetection;
     int SELECT_PICTURE = 200;
 
-    private String pathModel = "yolov5s.tflite";
+    private String detectionPathModel = "yolov5n.tflite";
+    private String recognitionPathModel = "nlcnn_model_99_64.tflite";
     private String pathLabels = "labelmap.txt";
-    private int modelInputSize = 640;
+    private int detectionModelInputSize = 640;
+    private int recognitionModelInputSize = 48;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,7 +42,7 @@ public class PickActivity extends AppCompatActivity {
 
         // load model
         try {
-            objectDetection = new ObjectDetection(getAssets(), pathModel, pathLabels, modelInputSize);
+            objectDetection = new ObjectDetection(getAssets(), detectionPathModel, recognitionPathModel, pathLabels, detectionModelInputSize, recognitionModelInputSize);
             Log.d(TAG, "Model is successfully loaded");
         } catch (IOException e) {
             Log.d(TAG, "Getting some error");
@@ -58,7 +60,6 @@ public class PickActivity extends AppCompatActivity {
     }
 
     private void imageChooser() {
-
         // create an instance of the
         // intent of the type image
         Intent i = new Intent();

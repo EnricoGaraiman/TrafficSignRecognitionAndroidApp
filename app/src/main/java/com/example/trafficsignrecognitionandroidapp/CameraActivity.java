@@ -29,11 +29,11 @@ public class CameraActivity extends Activity implements CameraBridgeViewBase.CvC
     private Mat mRgba;
     private CameraBridgeViewBase mOpenCvCameraView;
     private ObjectDetection objectDetection;
-//    private String pathModel = "nlcnn_model_99_64.tflite";
-    private String pathModel = "yolov5s.tflite";
+    private String detectionPathModel = "yolov5n.tflite";
+    private String recognitionPathModel = "nlcnn_model_99_64.tflite";
     private String pathLabels = "labelmap.txt";
-//    private int modelInputSize = 48;
-    private int modelInputSize = 640;
+    private int detectionModelInputSize = 640;
+    private int recognitionModelInputSize = 48;
 
     private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
         @Override
@@ -75,11 +75,11 @@ public class CameraActivity extends Activity implements CameraBridgeViewBase.CvC
         mOpenCvCameraView.setVisibility(SurfaceView.VISIBLE);
         mOpenCvCameraView.setCvCameraViewListener(this);
         mOpenCvCameraView.enableFpsMeter(); // fps
-        mOpenCvCameraView.setMaxFrameSize(640, 640); // max frame size improve FPS, reduce acc
+        mOpenCvCameraView.setMaxFrameSize(640, 640); // max frame size improve FPS, reduce performance
 
         // get model
         try {
-            objectDetection = new ObjectDetection(getAssets(), pathModel, pathLabels, modelInputSize);
+            objectDetection = new ObjectDetection(getAssets(), detectionPathModel, recognitionPathModel, pathLabels, detectionModelInputSize, recognitionModelInputSize);
             Log.d(TAG, "Model is successfully loaded");
         } catch (IOException e) {
             Log.d(TAG, "Getting some error");
