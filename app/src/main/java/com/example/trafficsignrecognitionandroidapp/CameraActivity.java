@@ -161,13 +161,13 @@ public class CameraActivity extends Activity implements CameraBridgeViewBase.CvC
     }
 
     public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
-//        mRgba = inputFrame.rgba();
-//
-//        // recognize
-//        Mat out = new Mat();
-//        ObjectDetection.drawBoxes(objectDetection.recognizeFrame(mRgba), mRgba);
-//
-//        return out;
+        // mRgba = inputFrame.rgba();
+        //
+        // // recognize
+        // Mat out = new Mat();
+        // ObjectDetection.drawBoxes(objectDetection.recognizeFrame(mRgba), mRgba);
+        //
+        // return out;
         return null; // i implement async detection with function onCameraFrameAsync
     }
 

@@ -13,12 +13,14 @@
         android:baselineAligned="false"
         android:contentDescription="@string/image_view" />
 
+
     <Button
         android:id="@+id/select_button"
         android:layout_width="190dp"
         android:layout_height="70dp"
+        android:layout_alignParentEnd="true"
+        android:layout_marginEnd="1dp"
         android:text="@string/select_a_image" />
-
 
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottom_navigation"

@@ -130,7 +130,7 @@ public class PickActivity extends AppCompatActivity {
                     image = objectDetection.recognizePhoto(image);
 
                     // convert image Mat to bitmap
-                    Bitmap bitmap_recognize = null;
+                    Bitmap bitmap_recognize;
                     bitmap_recognize = Bitmap.createBitmap(image.cols(), image.rows(), Bitmap.Config.ARGB_8888);
                     Utils.matToBitmap(image, bitmap_recognize);
 

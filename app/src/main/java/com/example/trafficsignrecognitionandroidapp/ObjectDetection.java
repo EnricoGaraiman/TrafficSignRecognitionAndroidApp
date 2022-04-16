@@ -6,9 +6,9 @@ import android.graphics.Bitmap;
 import android.util.Log;
 
 import org.opencv.android.Utils;
-import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
+import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 import org.tensorflow.lite.Interpreter;
@@ -29,25 +29,25 @@ import java.util.Map;
 import java.util.Objects;
 
 public class ObjectDetection {
-    private static String TAG = "ObjectDetection";
+    private String TAG = "ObjectDetection";
 
     private Interpreter detectionInterpreter;
     private Interpreter recognitionInterpreter;
 
-    private static List<String> labelList;
-    private static int detectionInputSize;
-    private static int recognitionInputSize;
+    private List<String> labelList;
+    private int detectionInputSize;
+    private int recognitionInputSize;
     private int pixelSize = 3; // rgb
-    private static final boolean quantized = false;
+    private final boolean quantized = false;
     private int threads = 4;
-    private static float confidence = 0.5F;
+    private float confidence = 0.5F;
     private int numberOfClasses;
 
     // use GPU in app
     private GpuDelegate gpuDelegate;
-    private static int height = 0;
-    private static int width = 0;
-    private static int numberOfDetection = 10;
+    private int originalHeight = 0;
+    private int originalWidth = 0;
+    private int numberOfDetection = 10;
 
     /*------------------------------*/
     /* ObjectDetection constructor  */
@@ -117,28 +117,91 @@ public class ObjectDetection {
     /*------------------------------*/
     /* Draw boxes after detection   */
     /*------------------------------*/
-    public static void drawBoxes(Map<Integer, Object> outputMap, Mat mat_img, boolean realTime){
+    public void drawBoxes(Map<Integer, Object> outputMap, Mat mat_img, Mat detected_img){
         // get first N results
+        int width = originalWidth;
+        int height = originalHeight;
         float[][] result = getFirstNResults((float[][])Array.get(Objects.requireNonNull(outputMap.get(0)), 0));
+        float x, y, w, h;
+        float [] recognition;
 
         // get first N results and draw boxes
         for (float[] res : result) {
             float score_value = res[0];
             if (score_value > confidence) {
                 // multiplying it with original height and width of frame
-                float x = res[1] * width;
-                float y = res[2] * height;
-                float w = res[3] * width;
-                float h = res[4] * height;
+                x = res[1] * width;
+                y = res[2] * height;
+                w = res[3] * width;
+                h = res[4] * height;
 
-                // draw rectangle in Original frame //  starting point    // ending point of box  // color of box      // thickness
-                Imgproc.rectangle(mat_img, new Point(x - w / 2, y - h / 2), new Point(x + w / 2, y + h / 2), new Scalar(0, 255, 0, 255), 2);
-                // write text on frame
-                // string of class name of object  // starting point                         // color of text           // size of text
-                Imgproc.putText(mat_img, "Sign", new Point(x, y), 3, 1, new Scalar(255, 0, 0, 255), 2);
+                // crop image
+                Rect rect = new Rect((int)(x - w / 2), (int)(y - h / 2) , (int)w, (int)h);
+                Mat croppedImg = detected_img.submat(rect);//new Mat(detected_img, rect);
+                Log.e(TAG, "drawBoxes: " + croppedImg.rows() + ' ' + croppedImg.cols() );
+                if(croppedImg.rows() > 0 && croppedImg.cols() > 0) {
+                    // make recognition traffic sign
+                    recognition = recognitionImage(croppedImg);
+
+                    // draw rectangle in Original frame
+                    Imgproc.rectangle(mat_img, new Point(x - w / 2, y - h / 2),
+                            new Point(x + w / 2, y + h / 2),
+                            new Scalar(0, 255, 0, 255), 2);
+                    // write text on frame
+                    Imgproc.putText(mat_img,
+                            labelList.get((int) recognition[1]) + "(" + String.format("%.2f", recognition[0] * 100) + "%)",
+                            new Point(x - w / 2, y - h / 2), 2, 1, new Scalar(255, 0, 0, 255), 2);
+                }
             }
         }
+    }
 
+    /*------------------------------*/
+    /* Traffic sign recognition     */
+    /*------------------------------*/
+    private float[] recognitionImage(Mat mat_img) {
+        float []result = new float[3];
+
+        // measure latency
+        long startTime = System.currentTimeMillis();
+
+        // convert to bitmap
+        Bitmap bitmap;
+        bitmap = Bitmap.createBitmap(mat_img.cols(), mat_img.rows(), Bitmap.Config.ARGB_8888);
+        Utils.matToBitmap(mat_img, bitmap);
+
+        // define h and w
+        originalHeight = bitmap.getHeight();
+        originalWidth = bitmap.getWidth();
+
+        // scale to input size of model
+        Bitmap scaledBitmap = Bitmap.createScaledBitmap(bitmap, recognitionInputSize, recognitionInputSize, false);
+
+        // convert bitmap to bytebuffer -> input
+        ByteBuffer byteBuffer = convertBitmapToByteBuffer(scaledBitmap, recognitionInputSize);
+        Object[] input = new Object[1];
+        input[0] = byteBuffer;
+
+        // define output
+        Map<Integer, Object> outputMap = new HashMap<>();
+        outputMap.put(0, new float[1][numberOfClasses]);
+
+        // make recognition
+        recognitionInterpreter.runForMultipleInputsOutputs(input, outputMap);
+
+        // get latency
+        long stopTime = System.currentTimeMillis();
+        long latency = stopTime - startTime;
+        Log.d(TAG, "Elapsed time was " + latency + " milliseconds.");
+
+        // get results
+        float []accAndClass = getAccuracyAndClassRecognition((float[]) Array.get(outputMap.get(0), 0));
+        result[0] = accAndClass[0]; // set accuracy
+        result[1] = accAndClass[1]; // set class
+        result[2] = latency; // set latency
+
+        // return results
+        return result;
     }
 
     /*-----------------------------*/
@@ -149,52 +212,38 @@ public class ObjectDetection {
         long startTime = System.currentTimeMillis();
 
         // convert to bitmap
-        Bitmap bitmap = null;
+        Bitmap bitmap;
         bitmap = Bitmap.createBitmap(mat_img.cols(), mat_img.rows(), Bitmap.Config.ARGB_8888);
         Utils.matToBitmap(mat_img, bitmap);
 
         // define h and w
-        height = bitmap.getHeight();
-        width = bitmap.getWidth();
+        originalHeight = bitmap.getHeight();
+        originalWidth = bitmap.getWidth();
 
         // scale to input size of model
         Bitmap scaledBitmap = Bitmap.createScaledBitmap(bitmap, detectionInputSize, detectionInputSize, false);
 
         // convert bitmap to bytebuffer -> input
-        ByteBuffer byteBuffer = convertBitmapToByteBuffer(scaledBitmap);
+        ByteBuffer byteBuffer = convertBitmapToByteBuffer(scaledBitmap, detectionInputSize);
         Object[] input = new Object[1];
         input[0] = byteBuffer;
 
         // output
         Map<Integer, Object> outputMap = new HashMap<>();
-        //outputMap.put(0, new float[1][numberOfClasses]);
         outputMap.put(0, new float[1][25200][6]);
 
         // prediction
         detectionInterpreter.runForMultipleInputsOutputs(input, outputMap);
 
         Log.d(TAG, "recognizeImage: a iesit? ");
-//        Log.d(TAG, "recognizeImage: " + getIndexOfLargest(outputMap.get(0))));
-        //Log.e(TAG, "recognizeImage: " + labelList.get(getIndexOfLargest((float[]) Array.get(outputMap.get(0), 0)))); !!!!!!!!
-
-        // yolov5s
-//        List<?> results = Arrays.stream((float[][])Array.get(outputMap.get(0), 0)).filter( i -> i != null && i[0] != 0).collect(Collectors.toList());
-
-//        float [][]result = parseDetectionOutput(outputMap);
-
-
-//        Log.d(TAG, "recognizeImage: " + getIndexOfLargest((float[]) Array.get(Array.get(outputMap.get(0), 0), 0)));
-//        Log.d(TAG, "recognizeImage: " + ((float[]) Array.get(Array.get(outputMap.get(0), 0),0)).length); //6
-//        Log.d(TAG, "recognizeImage: " + ((float[][]) Array.get(outputMap.get(0), 0)).length); //25200
-
-//        Log.d(TAG, "recognizeImage: out? " + getIndexOfLargest(outputMap.get(0)));
 //        try {
 //            Thread.sleep(1000);
 //        } catch (InterruptedException e) {
 //            e.printStackTrace();
 //        }
         long stopTime = System.currentTimeMillis();
-        Log.d(TAG, "Elapsed time was " + (stopTime - startTime) + " milliseconds.");
+        long latency = stopTime - startTime;
+        Log.d(TAG, "Elapsed time was " + latency + " milliseconds.");
 
         // return result for drawing
         return outputMap;
@@ -213,14 +262,14 @@ public class ObjectDetection {
         Utils.matToBitmap(mat_img, bitmap);
 
         // define h and w of image
-        height = bitmap.getHeight();
-        width = bitmap.getWidth();
+        originalHeight = bitmap.getHeight();
+        originalWidth = bitmap.getWidth();
 
         // scale to input size of model
         Bitmap scaledBitmap = Bitmap.createScaledBitmap(bitmap, detectionInputSize, detectionInputSize, false);
 
         // convert bitmap to bytebuffer -> input
-        ByteBuffer byteBuffer = convertBitmapToByteBuffer(scaledBitmap);
+        ByteBuffer byteBuffer = convertBitmapToByteBuffer(scaledBitmap, detectionInputSize);
         Object[] input = new Object[1];
         input[0] = byteBuffer;
 
@@ -233,32 +282,33 @@ public class ObjectDetection {
 
         // get latence
         long stopTime = System.currentTimeMillis();
-        Log.d(TAG, "Latency: " + (stopTime - startTime) + " milliseconds.");
+        long latency = stopTime - startTime;
+        Log.d(TAG, "Elapsed time was " + latency + " milliseconds.");
 
         // draw boxes and return modified image
-        drawBoxes(outputMap, mat_img, false);
+        drawBoxes(outputMap, mat_img, mat_img);
         return mat_img;
     }
 
     /*-----------------------------------------------------*/
     /* Convert bitmap to bytes for input neuronal network  */
     /*-----------------------------------------------------*/
-    private ByteBuffer convertBitmapToByteBuffer(Bitmap bitmap) {
+    private ByteBuffer convertBitmapToByteBuffer(Bitmap bitmap, int inputSize) {
         ByteBuffer byteBuffer;
 
         // model input
         if (quantized) {
-            byteBuffer = ByteBuffer.allocateDirect(detectionInputSize * detectionInputSize * pixelSize);
+            byteBuffer = ByteBuffer.allocateDirect(inputSize * inputSize * pixelSize);
         } else {
-            byteBuffer = ByteBuffer.allocateDirect(4 * detectionInputSize * detectionInputSize * pixelSize);
+            byteBuffer = ByteBuffer.allocateDirect(4 * inputSize * inputSize * pixelSize);
         }
 
         byteBuffer.order(ByteOrder.nativeOrder());
-        int[] intValues = new int[detectionInputSize * detectionInputSize];
+        int[] intValues = new int[inputSize * inputSize];
         bitmap.getPixels(intValues, 0, bitmap.getWidth(), 0, 0, bitmap.getWidth(), bitmap.getHeight());
         int pixel = 0;
-        for (int i = 0; i < detectionInputSize; ++i) {
-            for (int j = 0; j < detectionInputSize; ++j) {
+        for (int i = 0; i < inputSize; ++i) {
+            for (int j = 0; j < inputSize; ++j) {
                 int val = intValues[pixel++];
                 if (quantized) {
                     byteBuffer.put((byte) ((val >> 16) & 0xFF));
@@ -278,7 +328,7 @@ public class ObjectDetection {
     /*------------------------*/
     /* Get first N detection  */
     /*------------------------*/
-    public static float[][] getFirstNResults(float[][] detection) {
+    public float[][] getFirstNResults(float[][] detection) {
         int index;
         float[][] result = new float[numberOfDetection][5];
         float[] probMax = new float [numberOfDetection];
@@ -286,7 +336,11 @@ public class ObjectDetection {
         for (int i = 0; i < numberOfDetection; i ++) {
             index = -1;
             for (int j = 0; j < detection.length; j++) {
-                if (probMax[i] < detection[j][4] && !check(probMax, detection[j][4]) && detection[j][4] >= confidence) {
+                if (
+                        probMax[i] < detection[j][4] &&
+                        !check(probMax, detection[j][4]) &&
+                        detection[j][4] >= confidence
+                ) {
                     index = j;
                     probMax[i] = detection[j][4];
                 }
@@ -308,7 +362,7 @@ public class ObjectDetection {
     /*----------------------------------*/
     /* Check if a value exist in array  */
     /*----------------------------------*/
-    private static boolean check(float[] arr, float toCheckValue)
+    private boolean check(float[] arr, float toCheckValue)
     {
         // check if the specified element
         // is present in the array or not
@@ -326,23 +380,23 @@ public class ObjectDetection {
     /*-------------------------------*/
     /* Get largest index from array  */
     /*-------------------------------*/
-    public float[] getIndexOfLargest( float[] array )
+    public float[] getAccuracyAndClassRecognition(float[] array)
     {
         float [] result = new float[2];
         if ( array == null || array.length == 0 ) return result; // null or empty
 
-        int largest = 0;
+        int predClass = 0;
         float prob = 0;
         for ( int i = 1; i < array.length; i++ )
         {
-            if ( array[i] > array[largest] ) {
-                largest = i;
+            if ( array[i] > array[predClass] ) {
+                predClass = i;
                 prob = array[i];
             }
         }
 
-        result[0] = largest;
-        result[1] = prob;
+        result[0] = prob;
+        result[1] = predClass;
         return result; // position of the first largest found
     }
 }
