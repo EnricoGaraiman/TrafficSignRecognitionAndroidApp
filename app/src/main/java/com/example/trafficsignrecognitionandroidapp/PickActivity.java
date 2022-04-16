@@ -1,5 +1,6 @@
 package com.example.trafficsignrecognitionandroidapp;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
@@ -8,9 +9,12 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Log;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
+
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 import org.opencv.android.Utils;
 import org.opencv.core.CvType;
@@ -35,6 +39,34 @@ public class PickActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_pick);
+
+        // initialize nav
+        BottomNavigationView bottomNavigationView = findViewById(R.id.bottom_navigation);
+
+        // set home selected
+        bottomNavigationView.setSelectedItemId(R.id.pick);
+
+        // perform ItemSelectedListener
+        bottomNavigationView.setOnNavigationItemSelectedListener(new BottomNavigationView.OnNavigationItemSelectedListener() {
+            @Override
+            public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+                switch (item.getItemId()) {
+                    case R.id.pick:
+                        return true;
+                    case R.id.realtime:
+                        startActivity(new Intent(getApplicationContext(), CameraActivity.class));
+                        overridePendingTransition(0, 0);
+                        return true;
+                    case R.id.home:
+                        startActivity(new Intent(getApplicationContext(), MainActivity.class));
+                        overridePendingTransition(0, 0);
+                        return true;
+                }
+
+                return false;
+
+            }
+        });
 
         // define btn image
         select_image = findViewById(R.id.select_button);

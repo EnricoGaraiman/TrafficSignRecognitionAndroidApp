@@ -1,16 +1,21 @@
 package com.example.trafficsignrecognitionandroidapp;
 
+import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.MenuItem;
 import android.view.SurfaceView;
 import android.view.Window;
 import android.view.WindowManager;
+
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraBridgeViewBase;
@@ -59,6 +64,7 @@ public class CameraActivity extends Activity implements CameraBridgeViewBase.CvC
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
@@ -70,6 +76,34 @@ public class CameraActivity extends Activity implements CameraBridgeViewBase.CvC
         }
 
         setContentView(R.layout.activity_camera);
+
+        // initialize nav
+        BottomNavigationView bottomNavigationView = findViewById(R.id.bottom_navigation);
+
+        // set home selected
+        bottomNavigationView.setSelectedItemId(R.id.realtime);
+
+        // perform ItemSelectedListener
+        bottomNavigationView.setOnNavigationItemSelectedListener(new BottomNavigationView.OnNavigationItemSelectedListener() {
+            @Override
+            public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+                switch (item.getItemId()) {
+                    case R.id.realtime:
+                        return true;
+                    case R.id.home:
+                        startActivity(new Intent(getApplicationContext(), MainActivity.class));
+                        overridePendingTransition(0, 0);
+                        return true;
+                    case R.id.pick:
+                        startActivity(new Intent(getApplicationContext(), PickActivity.class));
+                        overridePendingTransition(0, 0);
+                        return true;
+                }
+
+                return false;
+
+            }
+        });
 
         mOpenCvCameraView = findViewById(R.id.frame_surface);
         mOpenCvCameraView.setVisibility(SurfaceView.VISIBLE);
