@@ -24,16 +24,10 @@ import java.io.IOException;
 
 public class PickActivity extends AppCompatActivity {
     private String TAG = "Pick Activity";
-    private Button select_image;
-    private ImageView image_view;
+    private Button selectImage;
+    private ImageView imageView;
     private ObjectDetection objectDetection;
     int SELECT_PICTURE = 200;
-
-    private String detectionPathModel = "yolov5n.tflite";
-    private String recognitionPathModel = "nlcnn_model_99_64.tflite";
-    private String pathLabels = "labelmap.txt";
-    private int detectionModelInputSize = 640;
-    private int recognitionModelInputSize = 48;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -69,12 +63,12 @@ public class PickActivity extends AppCompatActivity {
         });
 
         // define btn image
-        select_image = findViewById(R.id.select_button);
-        image_view = findViewById(R.id.image_view);
+        selectImage = findViewById(R.id.select_button);
+        imageView = findViewById(R.id.image_view);
 
         // load model
         try {
-            objectDetection = new ObjectDetection(getAssets(), detectionPathModel, recognitionPathModel, pathLabels, detectionModelInputSize, recognitionModelInputSize);
+            objectDetection = new ObjectDetection(getAssets());
             Log.d(TAG, "Model is successfully loaded");
         } catch (IOException e) {
             Log.d(TAG, "Getting some error");
@@ -82,7 +76,7 @@ public class PickActivity extends AppCompatActivity {
         }
 
         // action for select image button
-        select_image.setOnClickListener(new View.OnClickListener() {
+        selectImage.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 // choose image when button is clicked
@@ -130,12 +124,12 @@ public class PickActivity extends AppCompatActivity {
                     image = objectDetection.recognizePhoto(image);
 
                     // convert image Mat to bitmap
-                    Bitmap bitmap_recognize;
-                    bitmap_recognize = Bitmap.createBitmap(image.cols(), image.rows(), Bitmap.Config.ARGB_8888);
-                    Utils.matToBitmap(image, bitmap_recognize);
+                    Bitmap bitmapRecognize;
+                    bitmapRecognize = Bitmap.createBitmap(image.cols(), image.rows(), Bitmap.Config.ARGB_8888);
+                    Utils.matToBitmap(image, bitmapRecognize);
 
                     // set image to image view
-                    image_view.setImageBitmap(bitmap_recognize);
+                    imageView.setImageBitmap(bitmapRecognize);
                 }
             }
         }

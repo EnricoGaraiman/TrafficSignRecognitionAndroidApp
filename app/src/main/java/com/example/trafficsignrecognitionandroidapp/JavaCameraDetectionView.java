@@ -1,7 +1,6 @@
 package com.example.trafficsignrecognitionandroidapp;
 
 import android.content.Context;
-import android.content.res.AssetManager;
 import android.graphics.Canvas;
 import android.graphics.Rect;
 import android.util.AttributeSet;
@@ -12,6 +11,7 @@ import org.opencv.android.JavaCameraView;
 import org.opencv.android.Utils;
 import org.opencv.core.Mat;
 
+import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -22,11 +22,7 @@ public class JavaCameraDetectionView extends JavaCameraView {
     private CompletableFuture<?> detectionOutput;
     private Map<Integer, Object> lastDetection;
     private Mat detectionFrame;
-    private String detectionPathModel = "yolov5n.tflite";
-    private String recognitionPathModel = "nlcnn_model_99_64.tflite";
-    private String pathLabels = "labelmap.txt";
-    private int detectionModelInputSize = 640;
-    private int recognitionModelInputSize = 48;
+    private Context context;
 
     public JavaCameraDetectionView(Context context, int cameraId) {
         super(context, cameraId);
@@ -34,16 +30,18 @@ public class JavaCameraDetectionView extends JavaCameraView {
 
     public JavaCameraDetectionView(Context context, AttributeSet attrs) {
         super(context, attrs);
+        this.context = context;
     }
 
     protected void deliverAndDrawFrame(CvCameraViewFrame frame) {
         Mat modified = frame.rgba();
+        Log.e(TAG, "deliverAndDrawFrame:tes " + modified.cols() + ' ' + modified.rows());
 
         if (mListener != null) {
             // get camera frame async
             if (detectionOutput == null) {
                 detectionOutput = mListener.onCameraFrameAsync(frame);
-                detectionFrame = modified;
+                detectionFrame = modified.clone();
             }
             else {
                 // if recognition is done
@@ -65,10 +63,13 @@ public class JavaCameraDetectionView extends JavaCameraView {
 
             // draw last prediction -> remove blinking effect
             if (lastDetection != null){
-                Log.e(TAG, "deliverAndDrawFrame: TODO " );
                 // draw box on current frame, not frame used for detection
-//                ObjectDetection objectDetection = new ObjectDetection(context, detectionPathModel, recognitionPathModel, pathLabels, detectionModelInputSize, recognitionModelInputSize);
-//                objectDetection.drawBoxes(lastDetection, modified, detectionFrame);
+                try {
+                    ObjectDetection objectDetection = new ObjectDetection(context.getAssets());
+                    objectDetection.drawBoxes(lastDetection, modified, detectionFrame, 0, true);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
         }
 
