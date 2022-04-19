@@ -121,7 +121,7 @@ public class PickActivity extends AppCompatActivity {
                     Utils.bitmapToMat(bitmap, image);
 
                     // send image to recognition method
-                    image = objectDetection.recognizePhoto(image);
+                    image = objectDetection.detectionImage(image);
 
                     // convert image Mat to bitmap
                     Bitmap bitmapRecognize;

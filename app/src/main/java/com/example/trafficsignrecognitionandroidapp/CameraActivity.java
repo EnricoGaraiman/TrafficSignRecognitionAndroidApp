@@ -173,7 +173,7 @@ public class CameraActivity extends Activity implements CameraBridgeViewBase.CvC
         // get frame for detection on separate thread -> unblocking UI
         return CompletableFuture.supplyAsync(() -> {
             mRgba = inputFrame.rgba();
-            return objectDetection.recognizeFrame(mRgba);
+            return objectDetection.detectionFrame(mRgba);
         });
     }
 

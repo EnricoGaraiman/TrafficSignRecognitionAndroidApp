@@ -35,7 +35,6 @@ public class JavaCameraDetectionView extends JavaCameraView {
 
     protected void deliverAndDrawFrame(CvCameraViewFrame frame) {
         Mat modified = frame.rgba();
-        Log.e(TAG, "deliverAndDrawFrame:tes " + modified.cols() + ' ' + modified.rows());
 
         if (mListener != null) {
             // get camera frame async

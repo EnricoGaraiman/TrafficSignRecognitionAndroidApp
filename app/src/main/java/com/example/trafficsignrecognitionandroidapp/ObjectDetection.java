@@ -41,10 +41,10 @@ public class ObjectDetection {
     private int threads = 4;
     private float confidence = 0.5F;
     private int numberOfClasses;
+    private int numberOfDetection = 10;
 
     // use GPU in app
     private GpuDelegate gpuDelegate;
-    private int numberOfDetection = 10;
 
     // detection & recognition
     private String detectionPathModel = "yolov5n.tflite";
@@ -115,6 +115,7 @@ public class ObjectDetection {
         // rotate image if real time images from camera
         Mat matImgRotate = matImg;
         Mat detectedMatImgRotate = detectedImg;
+
         if(realTime) {
             // rotate matImg
             Mat a = matImg.t();
@@ -127,6 +128,12 @@ public class ObjectDetection {
             b.release();
         }
 
+        int width = detectedMatImgRotate.width();
+        int height = detectedMatImgRotate.height();
+        float x, y, w, h;
+        float [] recognition;
+        List<float[]> showedResults = new ArrayList<>();
+
         // get detection latency
         long latency;
         if(latencyStorage != 0) {
@@ -137,11 +144,7 @@ public class ObjectDetection {
         }
 
         // get first N results
-        int width = detectedMatImgRotate.width();
-        int height = detectedMatImgRotate.height();
         float[][] result = getFirstNResults((float[][])Array.get(Objects.requireNonNull(outputMap.get(0)), 0));
-        float x, y, w, h;
-        float [] recognition;
 
         // get first N results and draw boxes
         for (float[] res : result) {
@@ -153,32 +156,36 @@ public class ObjectDetection {
                 w = res[3] * width;
                 h = res[4] * height;
 
-                try {
+                // check if a detection overlay showed detections
+                if(!checkOverlayedDetections(showedResults, res, width, height)) {
+                    try {
+                        // crop image
+                        Rect rect = new Rect((int) (x - w / 2), (int) (y - h / 2), (int) w, (int) h);
+                        Mat croppedImg = detectedMatImgRotate.submat(rect);
 
-                    // crop image
-                    Rect rect = new Rect((int) (x - w / 2), (int) (y - h / 2), (int) w, (int) h);
-                    Mat croppedImg = detectedMatImgRotate.submat(rect);
+                        if (croppedImg.rows() > 0 && croppedImg.cols() > 0) {
+                            // make recognition traffic sign
+                            recognition = recognitionImage(croppedImg);
 
-                    if (croppedImg.rows() > 0 && croppedImg.cols() > 0) {
-                        // make recognition traffic sign
-                        recognition = recognitionImage(croppedImg);
+                            // draw rectangle in Original frame
+                            Imgproc.rectangle(matImgRotate,
+                                    new Point(x - w / 2, y - h / 2),
+                                    new Point(x + w / 2, y + h / 2),
+                                    new Scalar(0, 255, 0, 255), 2);
+                            // write text on frame
+                            Imgproc.putText(matImgRotate,
+                                    labelList.get((int) recognition[1]) + " (" + String.format("%.2f", recognition[0] * 100) + "%)",
+                                    new Point(x - w / 2, y - h / 2), 1, 1, new Scalar(255, 0, 0, 255), 2);
 
-                        // draw rectangle in Original frame
-                        Imgproc.rectangle(matImgRotate,
-                                new Point(x - w / 2, y - h / 2),
-                                new Point(x + w / 2, y + h / 2),
-                                new Scalar(0, 255, 0, 255), 2);
-                        // write text on frame
-                        Imgproc.putText(matImgRotate,
-                                labelList.get((int) recognition[1]) + "(" + String.format("%.2f", recognition[0] * 100) + "%)",
-                                new Point(x - w / 2, y - h / 2), 1, 1, new Scalar(255, 0, 0, 255), 2);
+                            // add latency
+                            latency += recognition[2];
 
-                        // add latency
-                        latency += recognition[2];
+                            // add this result to showed results (remove overlayed detections)
+                            showedResults.add(res);
+                        }
+                    } catch (Exception e) {
+                        Log.e(TAG, "drawBoxes: Error: " + e.getMessage());
                     }
-                }
-                catch (Exception e) {
-                    Log.e(TAG, "drawBoxes: Error: " + e.getMessage());
                 }
             }
         }
@@ -245,7 +252,7 @@ public class ObjectDetection {
     /*-----------------------------*/
     /* Frame processing real time  */
     /*-----------------------------*/
-    public Map<Integer, Object> recognizeFrame(Mat matImg) {
+    public Map<Integer, Object> detectionFrame(Mat matImg) {
         // measure latency
         long startTime = System.currentTimeMillis();
 
@@ -275,13 +282,6 @@ public class ObjectDetection {
         // prediction
         detectionInterpreter.runForMultipleInputsOutputs(input, outputMap);
 
-        Log.d(TAG, "recognizeImage: a iesit? ");
-//        try {
-//            Thread.sleep(1000);
-//        } catch (InterruptedException e) {
-//            e.printStackTrace();
-//        }
-
         // get latency
         long stopTime = System.currentTimeMillis();
         outputMap.put(1, stopTime - startTime);
@@ -293,7 +293,7 @@ public class ObjectDetection {
     /*------------------------------*/
     /* Recognize photo from storage */
     /*------------------------------*/
-    public Mat recognizePhoto(Mat matImg) {
+    public Mat detectionImage(Mat matImg) {
         // measure latency
         long startTime = System.currentTimeMillis();
 
@@ -363,7 +363,7 @@ public class ObjectDetection {
     /*------------------------*/
     /* Get first N detection  */
     /*------------------------*/
-    public float[][] getFirstNResults(float[][] detection) {
+    private float[][] getFirstNResults(float[][] detection) {
         int index;
         float[][] result = new float[numberOfDetection][5];
         float[] probMax = new float [numberOfDetection];
@@ -415,7 +415,7 @@ public class ObjectDetection {
     /*-------------------------------*/
     /* Get largest index from array  */
     /*-------------------------------*/
-    public float[] getAccuracyAndClassRecognition(float[] array)
+    private float[] getAccuracyAndClassRecognition(float[] array)
     {
         float [] result = new float[2];
         if ( array == null || array.length == 0 ) return result; // null or empty
@@ -433,5 +433,27 @@ public class ObjectDetection {
         result[0] = prob;
         result[1] = predClass;
         return result; // position of the first largest found
+    }
+
+    /*-------------------------------*/
+    /* Check overlayed detections    */
+    /*-------------------------------*/
+    private boolean checkOverlayedDetections(List<float[]> showedResults, float[] result, int width, int height)
+    {
+        float xA, yA, xB, yB;
+
+        for (float[] res : showedResults) {
+            xA = Math.max(result[1] * width - result[3] * width / 2, res[1] * width - res[3] * width / 2);
+            yA = Math.max(result[2] * height - result[4] * height / 2, res[2] * height - res[4] * height / 2);
+            xB = Math.min(result[1] * width + result[3] * width / 2, res[1] * width + res[3] * width / 2);
+            yB = Math.min(result[2] * height + result[4] * height / 2, res[2] * height + res[4] * height / 2);
+
+            // if boxes intersect
+            if(Math.max(0, xB - xA + 1) * Math.max(0, yB - yA + 1) > 0) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
