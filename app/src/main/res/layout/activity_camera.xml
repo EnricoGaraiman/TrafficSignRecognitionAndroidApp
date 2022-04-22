@@ -4,6 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/background"
     tools:context=".CameraActivity">
 
     <com.example.trafficsignrecognitionandroidapp.JavaCameraDetectionView
@@ -16,10 +17,27 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
-        app:itemBackground="@color/purple_500"
+        app:itemBackground="@color/blue_dark"
         app:itemIconTint="@drawable/selector"
         app:itemTextColor="@drawable/selector"
         app:menu="@menu/menu_navigation" />
 
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar_top"
+        android:layout_height="wrap_content"
+        android:layout_width="match_parent"
+        android:minHeight="?android:attr/actionBarSize"
+        android:background="@color/blue_dark">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/app_name"
+            android:layout_gravity="center"
+            android:textColor="@color/background"
+            android:textSize="20sp"
+            android:id="@+id/toolbar_title" />
+
+    </androidx.appcompat.widget.Toolbar>
 
 </RelativeLayout>

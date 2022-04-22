@@ -66,6 +66,9 @@ public class PickActivity extends AppCompatActivity {
         selectImage = findViewById(R.id.select_button);
         imageView = findViewById(R.id.image_view);
 
+        // add placeholder for image container
+        imageView.setImageDrawable(getResources().getDrawable(R.drawable.ic_baseline_image_search_24, null));
+
         // load model
         try {
             objectDetection = new ObjectDetection(getAssets());

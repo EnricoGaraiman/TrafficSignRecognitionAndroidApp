@@ -3,25 +3,20 @@ package com.example.trafficsignrecognitionandroidapp;
 import android.content.res.AssetFileDescriptor;
 import android.content.res.AssetManager;
 import android.graphics.Bitmap;
-import android.os.Environment;
 import android.util.Log;
 
 import org.opencv.android.Utils;
 import org.opencv.core.Core;
-import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
-import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 import org.tensorflow.lite.Interpreter;
-import org.tensorflow.lite.gpu.GpuDelegate;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.Array;
@@ -48,9 +43,6 @@ public class ObjectDetection {
     private int numberOfClasses;
     private int numberOfDetection = 10;
 
-    // use GPU in app
-    private GpuDelegate gpuDelegate;
-
     // detection & recognition
     private String detectionPathModel = "yolov5n.tflite";
     private String recognitionPathModel = "nlcnn_model_99_64.tflite";
@@ -64,8 +56,6 @@ public class ObjectDetection {
     ObjectDetection(AssetManager assetManager) throws IOException {
         // define GPU/CPU and number of threads
         Interpreter.Options options = new Interpreter.Options();
-//        gpuDelegate = new GpuDelegate();
-//        options.addDelegate(gpuDelegate);
         options.setNumThreads(threads);
 
         // load detection model
@@ -137,12 +127,12 @@ public class ObjectDetection {
         Mat resizedDetectedMatImgRotate = new Mat();
         Imgproc.resize(detectedMatImgRotate, resizedDetectedMatImgRotate, new Size(detectionModelInputSize, detectionModelInputSize), Imgproc.INTER_AREA);
 
+        // initializations
         int detectedWidth = resizedDetectedMatImgRotate.width();
         int detectedHeight = resizedDetectedMatImgRotate.height();
         int frameWidth = matImgRotate.width();
         int frameHeight = matImgRotate.height();
         float aspectRatio = realTime ? (float) frameHeight/frameWidth : 1;
-        Log.e(TAG, "drawBoxes: " + aspectRatio );
         float scoreValue;
         float[] recognition;
         long latency;
@@ -157,13 +147,10 @@ public class ObjectDetection {
             latency = (long) Objects.requireNonNull(outputMap.get(1));
         }
 
-        // get first N results
+        // get first N results and draw boxes
         float[][] result = getFirstNResults((float[][]) Array.get(Objects.requireNonNull(outputMap.get(0)), 0));
 
-        // get first N results and draw boxes
-        int i = 0;
         for (float[] res : result) {
-            i++;
             scoreValue = res[0];
             if (scoreValue > confidence) {
 
@@ -205,13 +192,13 @@ public class ObjectDetection {
                             Imgproc.rectangle(matImgRotate,
                                     new Point((res[1] * frameWidth - res[3] * frameWidth * aspectRatio / 2), (res[2] * frameHeight - res[4] * frameHeight / aspectRatio / 2)),
                                     new Point((res[1] * frameWidth + res[3] * frameWidth * aspectRatio / 2), (res[2] * frameHeight + res[4] * frameHeight / aspectRatio / 2)),
-                                    new Scalar(0, 255, 0, 255), 2);
+                                    new Scalar(250, 153, 28, 255), 2);
 
                             // write text on frame
                             Imgproc.putText(matImgRotate,
                                     labelList.get((int) recognition[1]) + " (" + String.format("%.2f", recognition[0] * 100) + "%)",
-                                    new Point(res[1] * frameWidth - res[3] * frameWidth / 2, res[2] * frameHeight - res[4] * frameHeight / 2),
-                                    1, 1, new Scalar(255, 0, 0, 255), 2);
+                                    new Point(res[1] * frameWidth - res[3] * frameWidth * aspectRatio / 2, res[2] * frameHeight - res[4] * frameHeight / aspectRatio / 2 - 6),
+                                    1, 1, new Scalar(251, 243, 242, 255), 2);
 
                             // add latency
                             latency += recognition[2];
@@ -240,7 +227,6 @@ public class ObjectDetection {
             d.release();
         }
 
-        // reset latency
         Log.e(TAG, "drawBoxes: Total latency: " + latency + "ms");
     }
 

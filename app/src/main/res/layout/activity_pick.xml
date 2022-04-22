@@ -4,33 +4,63 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/background"
     tools:context=".PickActivity">
+
 
     <ImageView
         android:id="@+id/image_view"
         android:layout_width="match_parent"
         android:layout_height="400dp"
+        android:layout_below="@+id/toolbar_top"
+        android:layout_marginStart="10dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginEnd="10dp"
         android:baselineAligned="false"
+        android:background="@drawable/rounded_view"
         android:contentDescription="@string/image_view" />
-
 
     <Button
         android:id="@+id/select_button"
-        android:layout_width="190dp"
+        android:layout_width="match_parent"
         android:layout_height="70dp"
+        android:layout_below="@+id/image_view"
         android:layout_alignParentEnd="true"
-        android:layout_marginEnd="1dp"
-        android:text="@string/select_a_image" />
+        android:textAllCaps="false"
+        android:textSize="18sp"
+        android:layout_marginStart="10dp"
+        android:layout_marginTop="100dp"
+        android:layout_marginEnd="10dp"
+        android:background="@drawable/rounded_button"
+        android:text="@string/select_a_image"
+        android:textColor="@color/background" />
 
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottom_navigation"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
-        app:itemBackground="@color/purple_500"
+        app:itemBackground="@color/blue_dark"
         app:itemIconTint="@drawable/selector"
         app:itemTextColor="@drawable/selector"
         app:menu="@menu/menu_navigation" />
 
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar_top"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/blue_dark"
+        android:minHeight="?android:attr/actionBarSize">
+
+        <TextView
+            android:id="@+id/toolbar_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="@string/app_name"
+            android:textColor="@color/background"
+            android:textSize="20sp" />
+
+    </androidx.appcompat.widget.Toolbar>
 
 </RelativeLayout>

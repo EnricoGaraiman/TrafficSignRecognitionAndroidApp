@@ -1,11 +1,16 @@
 <resources>
-    <string name="app_name">TrafficSignRecognitionAndroidApp</string>
+    <string name="app_name">Traffic Sign Recognition</string>
     <string name="real_time_recognition">Real time image</string>
     <string name="pick_a_image">Select a image</string>
     <string name="select_a_image">Select a image</string>
     <string name="image_view">Image view</string>
     <string name="traffic_sign_recognition">Traffic Sign Recognition</string>
-    <string name="descriere">descriere</string>
+    <string name="descriere">\t\t\t\t Within the application you can use the following features:\n<br/>\n<br/>
+        • real time traffic signs detection and recognition using the device\'s camera;\n<br/>
+        • choice of an image from the storage space of the device to detect and recognize traffic signs.\n<br/>\n<br/>
+        \t\t\t\t Project realized for the diploma thesis. Polytechnic University of Bucharest • Faculty of Electronics,
+        Telecommunications and Information Technology • year 2022.
+    </string>
     <string name="copyright">Copyright © Enrico Gărăiman 2022 • All right reserved</string>
     <string name="title_activity_home">HomeActivity</string>
     <!-- Strings used for fragments for navigation -->
@@ -13,7 +18,4 @@
     <string name="second_fragment_label">Second Fragment</string>
     <string name="next">Next</string>
     <string name="previous">Previous</string>
-
-    <string name="hello_first_fragment">Hello first fragment</string>
-    <string name="hello_second_fragment">Hello second fragment. Arg: %1$s</string>
 </resources>

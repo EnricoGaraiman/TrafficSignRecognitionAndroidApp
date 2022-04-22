@@ -5,25 +5,77 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/background"
     tools:context=".MainActivity">
 
     <TextView
-        android:id="@+id/textView2"
+        android:id="@+id/textViewHomeTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Home"
-        android:textSize="50sp"
-        android:layout_centerInParent="true" />
+        android:layout_below="@+id/toolbar_top"
+        android:layout_marginStart="10dp"
+        android:layout_marginTop="80dp"
+        android:layout_marginEnd="10dp"
+        android:text="@string/app_name"
+        android:textAlignment="center"
+        android:textColor="@color/orange"
+        android:textSize="40sp"
+        tools:ignore="RelativeOverlap" />
 
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:id="@+id/bottom_navigation"
-        app:itemBackground="@color/purple_500"
+        app:itemBackground="@color/blue_dark"
         app:itemTextColor="@drawable/selector"
         app:itemIconTint="@drawable/selector"
         app:menu="@menu/menu_navigation"
         android:layout_alignParentBottom="true"/>
+
+    <TextView
+        android:id="@+id/textViewHomeDescription"
+        android:layout_width="387dp"
+        android:layout_height="wrap_content"
+        android:layout_alignBottom="@+id/textViewHomeTitle"
+        android:layout_alignParentEnd="true"
+        android:layout_marginStart="10dp"
+        android:layout_marginEnd="10dp"
+        android:layout_marginBottom="-320dp"
+        android:text="@string/descriere"
+        android:textAlignment="textStart"
+        android:textColor="@color/black"
+        android:textSize="18sp" />
+
+    <TextView
+        android:id="@+id/textViewHomeCopyright"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignBottom="@+id/textViewHomeDescription"
+        android:layout_marginStart="10dp"
+        android:layout_marginEnd="10dp"
+        android:layout_marginBottom="-50dp"
+        android:text="@string/copyright"
+        android:textAlignment="center"
+        android:textColor="@color/gray"
+        android:textSize="14sp" />
+
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar_top"
+        android:layout_height="wrap_content"
+        android:layout_width="match_parent"
+        android:minHeight="?android:attr/actionBarSize"
+        android:background="@color/blue_dark">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/app_name"
+            android:layout_gravity="center"
+            android:textColor="@color/background"
+            android:textSize="20sp"
+            android:id="@+id/toolbar_title" />
+
+    </androidx.appcompat.widget.Toolbar>
 
 
 </RelativeLayout>
