@@ -3,20 +3,25 @@ package com.example.trafficsignrecognitionandroidapp;
 import android.content.res.AssetFileDescriptor;
 import android.content.res.AssetManager;
 import android.graphics.Bitmap;
+import android.os.Environment;
 import android.util.Log;
 
 import org.opencv.android.Utils;
 import org.opencv.core.Core;
+import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
+import org.opencv.core.Size;
+import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 import org.tensorflow.lite.Interpreter;
 import org.tensorflow.lite.gpu.GpuDelegate;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.Array;
@@ -111,12 +116,12 @@ public class ObjectDetection {
     /*------------------------------*/
     /* Draw boxes after detection   */
     /*------------------------------*/
-    public void drawBoxes(Map<Integer, Object> outputMap, Mat matImg, Mat detectedImg, long latencyStorage, boolean realTime){
+    public void drawBoxes(Map<Integer, Object> outputMap, Mat matImg, Mat detectedImg, long latencyStorage, boolean realTime) {
         // rotate image if real time images from camera
         Mat matImgRotate = matImg;
         Mat detectedMatImgRotate = detectedImg;
 
-        if(realTime) {
+        if (realTime) {
             // rotate matImg
             Mat a = matImg.t();
             Core.flip(a, matImgRotate, 1);
@@ -128,15 +133,24 @@ public class ObjectDetection {
             b.release();
         }
 
-        int width = detectedMatImgRotate.width();
-        int height = detectedMatImgRotate.height();
-        float x, y, w, h;
-        float [] recognition;
+        // resize detectedMatImgRotate
+        Mat resizedDetectedMatImgRotate = new Mat();
+        Imgproc.resize(detectedMatImgRotate, resizedDetectedMatImgRotate, new Size(detectionModelInputSize, detectionModelInputSize), Imgproc.INTER_AREA);
+
+        int detectedWidth = resizedDetectedMatImgRotate.width();
+        int detectedHeight = resizedDetectedMatImgRotate.height();
+        int frameWidth = matImgRotate.width();
+        int frameHeight = matImgRotate.height();
+        float aspectRatio = realTime ? (float) frameHeight/frameWidth : 1;
+        Log.e(TAG, "drawBoxes: " + aspectRatio );
+        float scoreValue;
+        float[] recognition;
+        long latency;
+        int padding = 10;
         List<float[]> showedResults = new ArrayList<>();
 
         // get detection latency
-        long latency;
-        if(latencyStorage != 0) {
+        if (latencyStorage != 0) {
             latency = latencyStorage;
         }
         else {
@@ -144,24 +158,44 @@ public class ObjectDetection {
         }
 
         // get first N results
-        float[][] result = getFirstNResults((float[][])Array.get(Objects.requireNonNull(outputMap.get(0)), 0));
+        float[][] result = getFirstNResults((float[][]) Array.get(Objects.requireNonNull(outputMap.get(0)), 0));
 
         // get first N results and draw boxes
+        int i = 0;
         for (float[] res : result) {
-            float scoreValue = res[0];
+            i++;
+            scoreValue = res[0];
             if (scoreValue > confidence) {
-                // multiplying it with original height and width of frame
-                x = res[1] * width;
-                y = res[2] * height;
-                w = res[3] * width;
-                h = res[4] * height;
 
                 // check if a detection overlay showed detections
-                if(!checkOverlayedDetections(showedResults, res, width, height)) {
+                if (!checkOverlayedDetections(showedResults, res, detectedWidth, detectedHeight)) {
                     try {
                         // crop image
-                        Rect rect = new Rect((int) (x - w / 2), (int) (y - h / 2), (int) w, (int) h);
-                        Mat croppedImg = detectedMatImgRotate.submat(rect);
+                        Rect rect = new Rect(
+                                (int) (res[1] * detectedWidth - padding / 2 - (res[3] * detectedWidth + padding) / 2),
+                                (int) (res[2] * detectedHeight - padding / 2 - (res[4] * detectedHeight + padding) / 2),
+                                (int) (res[3] * detectedWidth + padding),
+                                (int) (res[4] * detectedHeight + padding)
+                        );
+                        Mat croppedImg = resizedDetectedMatImgRotate.submat(rect);
+
+//                        // save in storage
+//                        Bitmap bitmap = Bitmap.createBitmap(croppedImg.cols(), croppedImg.rows(), Bitmap.Config.ARGB_8888);
+//                        Utils.matToBitmap(croppedImg, bitmap);
+////                        Bitmap bitmapDetected = Bitmap.createBitmap(resizedDetectedMatImgRotate.cols(), resizedDetectedMatImgRotate.rows(), Bitmap.Config.ARGB_8888);
+////                        Utils.matToBitmap(resizedDetectedMatImgRotate, bitmapDetected);
+//                        try {
+//                            FileOutputStream out = new FileOutputStream(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS) + "/test" + i + ".png");
+//                            bitmap.compress(Bitmap.CompressFormat.PNG, 90, out);
+//                            out.close();
+//
+////                            FileOutputStream out1 = new FileOutputStream(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS) + "/test-detected.png");
+////                            bitmapDetected.compress(Bitmap.CompressFormat.PNG, 90, out1);
+////                            out1.close();
+//                        }
+//                        catch (Exception e) {
+//                            e.printStackTrace();
+//                        }
 
                         if (croppedImg.rows() > 0 && croppedImg.cols() > 0) {
                             // make recognition traffic sign
@@ -169,13 +203,15 @@ public class ObjectDetection {
 
                             // draw rectangle in Original frame
                             Imgproc.rectangle(matImgRotate,
-                                    new Point(x - w / 2, y - h / 2),
-                                    new Point(x + w / 2, y + h / 2),
+                                    new Point((res[1] * frameWidth - res[3] * frameWidth * aspectRatio / 2), (res[2] * frameHeight - res[4] * frameHeight / aspectRatio / 2)),
+                                    new Point((res[1] * frameWidth + res[3] * frameWidth * aspectRatio / 2), (res[2] * frameHeight + res[4] * frameHeight / aspectRatio / 2)),
                                     new Scalar(0, 255, 0, 255), 2);
+
                             // write text on frame
                             Imgproc.putText(matImgRotate,
                                     labelList.get((int) recognition[1]) + " (" + String.format("%.2f", recognition[0] * 100) + "%)",
-                                    new Point(x - w / 2, y - h / 2), 1, 1, new Scalar(255, 0, 0, 255), 2);
+                                    new Point(res[1] * frameWidth - res[3] * frameWidth / 2, res[2] * frameHeight - res[4] * frameHeight / 2),
+                                    1, 1, new Scalar(255, 0, 0, 255), 2);
 
                             // add latency
                             latency += recognition[2];
@@ -183,7 +219,8 @@ public class ObjectDetection {
                             // add this result to showed results (remove overlayed detections)
                             showedResults.add(res);
                         }
-                    } catch (Exception e) {
+                    }
+                    catch (Exception e) {
                         Log.e(TAG, "drawBoxes: Error: " + e.getMessage());
                     }
                 }
@@ -191,7 +228,7 @@ public class ObjectDetection {
         }
 
         // rotate image if real time images from camera
-        if(realTime) {
+        if (realTime) {
             // rotate matImg back
             Mat c = matImgRotate.t();
             Core.flip(c, matImg, 0);
@@ -211,7 +248,7 @@ public class ObjectDetection {
     /* Traffic sign recognition     */
     /*------------------------------*/
     private float[] recognitionImage(Mat matImg) {
-        float []result = new float[3];
+        float[] result = new float[3];
 
         // measure latency
         long startTime = System.currentTimeMillis();
@@ -240,7 +277,7 @@ public class ObjectDetection {
         long stopTime = System.currentTimeMillis();
 
         // get results
-        float []accAndClass = getAccuracyAndClassRecognition((float[]) Array.get(outputMap.get(0), 0));
+        float[] accAndClass = getAccuracyAndClassRecognition((float[]) Array.get(outputMap.get(0), 0));
         result[0] = accAndClass[0]; // set accuracy
         result[1] = accAndClass[1]; // set class
         result[2] = stopTime - startTime;
@@ -334,7 +371,8 @@ public class ObjectDetection {
         // model input
         if (quantized) {
             byteBuffer = ByteBuffer.allocateDirect(inputSize * inputSize * pixelSize);
-        } else {
+        }
+        else {
             byteBuffer = ByteBuffer.allocateDirect(4 * inputSize * inputSize * pixelSize);
         }
 
@@ -366,22 +404,22 @@ public class ObjectDetection {
     private float[][] getFirstNResults(float[][] detection) {
         int index;
         float[][] result = new float[numberOfDetection][5];
-        float[] probMax = new float [numberOfDetection];
+        float[] probMax = new float[numberOfDetection];
 
-        for (int i = 0; i < numberOfDetection; i ++) {
+        for (int i = 0; i < numberOfDetection; i++) {
             index = -1;
             for (int j = 0; j < detection.length; j++) {
                 if (
                         probMax[i] < detection[j][4] &&
-                        !check(probMax, detection[j][4]) &&
-                        detection[j][4] >= confidence
+                                !check(probMax, detection[j][4]) &&
+                                detection[j][4] >= confidence
                 ) {
                     index = j;
                     probMax[i] = detection[j][4];
                 }
             }
 
-            if(index != -1) {
+            if (index != -1) {
                 result[i][0] = probMax[i];
                 result[i][1] = detection[index][0];
                 result[i][2] = detection[index][1];
@@ -397,8 +435,7 @@ public class ObjectDetection {
     /*----------------------------------*/
     /* Check if a value exist in array  */
     /*----------------------------------*/
-    private boolean check(float[] arr, float toCheckValue)
-    {
+    private boolean check(float[] arr, float toCheckValue) {
         // check if the specified element
         // is present in the array or not
         // using Linear Search method
@@ -415,16 +452,14 @@ public class ObjectDetection {
     /*-------------------------------*/
     /* Get largest index from array  */
     /*-------------------------------*/
-    private float[] getAccuracyAndClassRecognition(float[] array)
-    {
-        float [] result = new float[2];
-        if ( array == null || array.length == 0 ) return result; // null or empty
+    private float[] getAccuracyAndClassRecognition(float[] array) {
+        float[] result = new float[2];
+        if (array == null || array.length == 0) return result; // null or empty
 
         int predClass = 0;
         float prob = 0;
-        for ( int i = 1; i < array.length; i++ )
-        {
-            if ( array[i] > array[predClass] ) {
+        for (int i = 1; i < array.length; i++) {
+            if (array[i] > array[predClass]) {
                 predClass = i;
                 prob = array[i];
             }
@@ -438,8 +473,7 @@ public class ObjectDetection {
     /*-------------------------------*/
     /* Check overlayed detections    */
     /*-------------------------------*/
-    private boolean checkOverlayedDetections(List<float[]> showedResults, float[] result, int width, int height)
-    {
+    private boolean checkOverlayedDetections(List<float[]> showedResults, float[] result, int width, int height) {
         float xA, yA, xB, yB;
 
         for (float[] res : showedResults) {
@@ -449,7 +483,7 @@ public class ObjectDetection {
             yB = Math.min(result[2] * height + result[4] * height / 2, res[2] * height + res[4] * height / 2);
 
             // if boxes intersect
-            if(Math.max(0, xB - xA + 1) * Math.max(0, yB - yA + 1) > 0) {
+            if (Math.max(0, xB - xA + 1) * Math.max(0, yB - yA + 1) > 0) {
                 return true;
             }
         }
