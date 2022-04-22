@@ -11,8 +11,10 @@ import android.provider.MediaStore;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.ListView;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
@@ -21,10 +23,15 @@ import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class PickActivity extends AppCompatActivity {
     private String TAG = "Pick Activity";
     private Button selectImage;
+    private ListView listView;
+    private List<String> listOfResults = new ArrayList<>();
+    private ArrayAdapter<String> adapter;
     private ImageView imageView;
     private ObjectDetection objectDetection;
     int SELECT_PICTURE = 200;
@@ -68,6 +75,11 @@ public class PickActivity extends AppCompatActivity {
 
         // add placeholder for image container
         imageView.setImageDrawable(getResources().getDrawable(R.drawable.ic_baseline_image_search_24, null));
+
+        // list of results frontend
+        adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, listOfResults);
+        listView = findViewById(R.id.pick_results_list);
+        listView.setAdapter(adapter);
 
         // load model
         try {
@@ -124,7 +136,7 @@ public class PickActivity extends AppCompatActivity {
                     Utils.bitmapToMat(bitmap, image);
 
                     // send image to recognition method
-                    image = objectDetection.detectionImage(image);
+                    image = objectDetection.detectionImage(image, listOfResults);
 
                     // convert image Mat to bitmap
                     Bitmap bitmapRecognize;
@@ -133,6 +145,9 @@ public class PickActivity extends AppCompatActivity {
 
                     // set image to image view
                     imageView.setImageBitmap(bitmapRecognize);
+
+                    // notify for new results
+                    adapter.notifyDataSetChanged();
                 }
             }
         }

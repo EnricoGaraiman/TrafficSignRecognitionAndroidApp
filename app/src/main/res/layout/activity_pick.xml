@@ -11,29 +11,29 @@
     <ImageView
         android:id="@+id/image_view"
         android:layout_width="match_parent"
-        android:layout_height="400dp"
+        android:layout_height="350dp"
         android:layout_below="@+id/toolbar_top"
         android:layout_marginStart="10dp"
         android:layout_marginTop="10dp"
         android:layout_marginEnd="10dp"
-        android:baselineAligned="false"
         android:background="@drawable/rounded_view"
+        android:baselineAligned="false"
         android:contentDescription="@string/image_view" />
 
     <Button
         android:id="@+id/select_button"
         android:layout_width="match_parent"
         android:layout_height="70dp"
-        android:layout_below="@+id/image_view"
+        android:layout_below="@+id/pick_results_list"
         android:layout_alignParentEnd="true"
-        android:textAllCaps="false"
-        android:textSize="18sp"
         android:layout_marginStart="10dp"
-        android:layout_marginTop="100dp"
+        android:layout_marginTop="10dp"
         android:layout_marginEnd="10dp"
         android:background="@drawable/rounded_button"
         android:text="@string/select_a_image"
-        android:textColor="@color/background" />
+        android:textAllCaps="false"
+        android:textColor="@color/background"
+        android:textSize="18sp" />
 
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottom_navigation"
@@ -62,5 +62,15 @@
             android:textSize="20sp" />
 
     </androidx.appcompat.widget.Toolbar>
+
+    <ListView
+        android:id="@+id/pick_results_list"
+        android:layout_width="match_parent"
+        android:layout_height="180dp"
+        android:layout_below="@+id/image_view"
+        android:layout_marginStart="10dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginEnd="10dp"
+        android:background="@drawable/rounded_view" />
 
 </RelativeLayout>

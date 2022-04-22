@@ -106,7 +106,7 @@ public class ObjectDetection {
     /*------------------------------*/
     /* Draw boxes after detection   */
     /*------------------------------*/
-    public void drawBoxes(Map<Integer, Object> outputMap, Mat matImg, Mat detectedImg, long latencyStorage, boolean realTime) {
+    public void drawBoxes(Map<Integer, Object> outputMap, Mat matImg, Mat detectedImg, long latencyStorage, boolean realTime, List<String> listOfResults) {
         // rotate image if real time images from camera
         Mat matImgRotate = matImg;
         Mat detectedMatImgRotate = detectedImg;
@@ -137,6 +137,8 @@ public class ObjectDetection {
         float[] recognition;
         long latency;
         int padding = 10;
+        String displayedText;
+        List<String> displayedTextArray = new ArrayList<>();
         List<float[]> showedResults = new ArrayList<>();
 
         // get detection latency
@@ -194,9 +196,13 @@ public class ObjectDetection {
                                     new Point((res[1] * frameWidth + res[3] * frameWidth * aspectRatio / 2), (res[2] * frameHeight + res[4] * frameHeight / aspectRatio / 2)),
                                     new Scalar(250, 153, 28, 255), 2);
 
+                            // set class and accuracy as text
+                            displayedText = labelList.get((int) recognition[1]) + " (" + String.format("%.2f", recognition[0] * 100) + "%)";
+                            displayedTextArray.add(displayedText);
+
                             // write text on frame
                             Imgproc.putText(matImgRotate,
-                                    labelList.get((int) recognition[1]) + " (" + String.format("%.2f", recognition[0] * 100) + "%)",
+                                    displayedText,
                                     new Point(res[1] * frameWidth - res[3] * frameWidth * aspectRatio / 2, res[2] * frameHeight - res[4] * frameHeight / aspectRatio / 2 - 6),
                                     1, 1, new Scalar(251, 243, 242, 255), 2);
 
@@ -227,7 +233,21 @@ public class ObjectDetection {
             d.release();
         }
 
-        Log.e(TAG, "drawBoxes: Total latency: " + latency + "ms");
+        // add result for frontend list
+        String returnedText = "";
+        if(realTime) {
+            returnedText += "Number of detected signs: " + displayedTextArray.size();
+        }
+        else {
+            returnedText += "Number of detected signs: " + displayedTextArray.size() + "\n\n";
+            for (String text : displayedTextArray) {
+                returnedText += text + "\n";
+            }
+        }
+        returnedText += "\nTotal latency: " + latency + " ms";
+        listOfResults.add(0, returnedText);
+
+        Log.d(TAG, "drawBoxes: Total latency: " + latency + " ms");
     }
 
     /*------------------------------*/
@@ -316,7 +336,7 @@ public class ObjectDetection {
     /*------------------------------*/
     /* Recognize photo from storage */
     /*------------------------------*/
-    public Mat detectionImage(Mat matImg) {
+    public Mat detectionImage(Mat matImg, List<String> listOfResults) {
         // measure latency
         long startTime = System.currentTimeMillis();
 
@@ -344,7 +364,7 @@ public class ObjectDetection {
         long stopTime = System.currentTimeMillis();
 
         // draw boxes and return modified image
-        drawBoxes(outputMap, matImg, matImg, stopTime - startTime, false);
+        drawBoxes(outputMap, matImg, matImg, stopTime - startTime, false, listOfResults);
         return matImg;
     }
 

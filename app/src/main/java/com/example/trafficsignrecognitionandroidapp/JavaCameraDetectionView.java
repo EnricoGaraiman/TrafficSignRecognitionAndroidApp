@@ -12,6 +12,7 @@ import org.opencv.android.Utils;
 import org.opencv.core.Mat;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -21,6 +22,7 @@ public class JavaCameraDetectionView extends JavaCameraView {
     private static final String TAG = "CameraBridgeDetectionView";
     private CompletableFuture<?> detectionOutput;
     private Map<Integer, Object> lastDetection;
+    private List<String> listOfResults;
     private Mat detectionFrame;
     private Context context;
 
@@ -65,7 +67,7 @@ public class JavaCameraDetectionView extends JavaCameraView {
                 // draw box on current frame, not frame used for detection
                 try {
                     ObjectDetection objectDetection = new ObjectDetection(context.getAssets());
-                    objectDetection.drawBoxes(lastDetection, modified, detectionFrame, 0, true);
+                    objectDetection.drawBoxes(lastDetection, modified, detectionFrame, 0, true, listOfResults);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
