@@ -12,6 +12,7 @@ import org.opencv.android.Utils;
 import org.opencv.core.Mat;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -22,7 +23,7 @@ public class JavaCameraDetectionView extends JavaCameraView {
     private static final String TAG = "CameraBridgeDetectionView";
     private CompletableFuture<?> detectionOutput;
     private Map<Integer, Object> lastDetection;
-    private List<String> listOfResults;
+    private List<String> listOfResults = new ArrayList<>();
     private Mat detectionFrame;
     private Context context;
 

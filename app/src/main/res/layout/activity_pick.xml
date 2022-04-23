@@ -20,21 +20,6 @@
         android:baselineAligned="false"
         android:contentDescription="@string/image_view" />
 
-    <Button
-        android:id="@+id/select_button"
-        android:layout_width="match_parent"
-        android:layout_height="70dp"
-        android:layout_below="@+id/pick_results_list"
-        android:layout_alignParentEnd="true"
-        android:layout_marginStart="10dp"
-        android:layout_marginTop="10dp"
-        android:layout_marginEnd="10dp"
-        android:background="@drawable/rounded_button"
-        android:text="@string/select_a_image"
-        android:textAllCaps="false"
-        android:textColor="@color/background"
-        android:textSize="18sp" />
-
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottom_navigation"
         android:layout_width="match_parent"
@@ -63,14 +48,42 @@
 
     </androidx.appcompat.widget.Toolbar>
 
-    <ListView
-        android:id="@+id/pick_results_list"
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="180dp"
+        android:layout_height="match_parent"
+        android:layout_above="@+id/bottom_navigation"
         android:layout_below="@+id/image_view"
-        android:layout_marginStart="10dp"
-        android:layout_marginTop="10dp"
-        android:layout_marginEnd="10dp"
-        android:background="@drawable/rounded_view" />
+        android:layout_centerInParent="true"
+        android:layout_marginBottom="-30dp"
+        android:orientation="vertical"
+        android:weightSum="2">
+
+        <ListView
+            android:id="@+id/pick_results_list"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginStart="10dp"
+            android:layout_marginTop="10dp"
+            android:layout_marginEnd="10dp"
+            android:layout_weight="1.5"
+            android:background="@drawable/rounded_view"
+            android:gravity="center_vertical|center_horizontal" />
+
+        <Button
+            android:id="@+id/select_button"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginStart="10dp"
+            android:layout_marginTop="10dp"
+            android:layout_marginEnd="10dp"
+            android:layout_marginBottom="45dp"
+            android:layout_weight="0.5"
+            android:background="@drawable/rounded_button"
+            android:gravity="center_vertical|center_horizontal"
+            android:text="@string/select_a_image"
+            android:textAllCaps="false"
+            android:textColor="@color/background"
+            android:textSize="18sp" />
+    </LinearLayout>
 
 </RelativeLayout>
