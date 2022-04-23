@@ -14,6 +14,8 @@ import android.view.MenuItem;
 import android.view.SurfaceView;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.ArrayAdapter;
+import android.widget.ListView;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
@@ -25,6 +27,8 @@ import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 public class CameraActivity extends Activity implements CameraBridgeViewBase.CvCameraViewListener2 {
@@ -34,6 +38,9 @@ public class CameraActivity extends Activity implements CameraBridgeViewBase.CvC
     private Mat mRgba;
     private CameraBridgeViewBase mOpenCvCameraView;
     private ObjectDetection objectDetection;
+    private ListView listView;
+    public static List<String> listOfResults = new ArrayList<>();
+    public static ArrayAdapter<String> adapter;
 
     private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
         @Override
@@ -120,6 +127,12 @@ public class CameraActivity extends Activity implements CameraBridgeViewBase.CvC
             Log.d(TAG, "Getting some error");
             e.printStackTrace();
         }
+
+        // list of results frontend
+        adapter = new ArrayAdapter<>(this, R.layout.list_item, listOfResults);
+        listView = findViewById(R.id.real_time_results);
+        listView.setDivider(null);
+        listView.setAdapter(adapter);
     }
 
     @Override

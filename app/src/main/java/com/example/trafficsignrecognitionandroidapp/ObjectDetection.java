@@ -174,7 +174,7 @@ public class ObjectDetection {
 ////                        Bitmap bitmapDetected = Bitmap.createBitmap(resizedDetectedMatImgRotate.cols(), resizedDetectedMatImgRotate.rows(), Bitmap.Config.ARGB_8888);
 ////                        Utils.matToBitmap(resizedDetectedMatImgRotate, bitmapDetected);
 //                        try {
-//                            FileOutputStream out = new FileOutputStream(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS) + "/test" + i + ".png");
+//                            FileOutputStream out = new FileOutputStream(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS) + "/test" + ((int) (Math.random()*(10 - 1))) + 1 + ".png");
 //                            bitmap.compress(Bitmap.CompressFormat.PNG, 90, out);
 //                            out.close();
 //
@@ -236,16 +236,22 @@ public class ObjectDetection {
         // add result for frontend list
         String returnedText = "";
         if(realTime) {
-            returnedText += "Number of detected signs: " + displayedTextArray.size();
+            returnedText += displayedTextArray.size() + " signs";
+            returnedText += "\n" + latency + " ms";
+            if(listOfResults.size() > 0) {
+                listOfResults.remove(0);
+            }
+            listOfResults.add(returnedText);
         }
         else {
             returnedText += "Number of detected signs: " + displayedTextArray.size() + "\n\n";
             for (String text : displayedTextArray) {
                 returnedText += text + "\n";
             }
+            returnedText += "\n" + latency + " ms";
+            listOfResults.add(0, returnedText);
         }
-        returnedText += "\nTotal latency: " + latency + " ms";
-        listOfResults.add(0, returnedText);
+
 
         Log.d(TAG, "drawBoxes: Total latency: " + latency + " ms");
     }

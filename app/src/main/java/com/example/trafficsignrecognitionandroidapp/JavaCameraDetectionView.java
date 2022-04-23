@@ -3,6 +3,8 @@ package com.example.trafficsignrecognitionandroidapp;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Rect;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.AttributeSet;
 import android.util.Log;
 
@@ -23,7 +25,7 @@ public class JavaCameraDetectionView extends JavaCameraView {
     private static final String TAG = "CameraBridgeDetectionView";
     private CompletableFuture<?> detectionOutput;
     private Map<Integer, Object> lastDetection;
-    private List<String> listOfResults = new ArrayList<>();
+    private List<String> listOfResults = CameraActivity.listOfResults;
     private Mat detectionFrame;
     private Context context;
 
@@ -69,6 +71,8 @@ public class JavaCameraDetectionView extends JavaCameraView {
                 try {
                     ObjectDetection objectDetection = new ObjectDetection(context.getAssets());
                     objectDetection.drawBoxes(lastDetection, modified, detectionFrame, 0, true, listOfResults);
+                    // see results on main thread for UI
+                    new Handler(Looper.getMainLooper()).post(() -> CameraActivity.adapter.notifyDataSetChanged());
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
