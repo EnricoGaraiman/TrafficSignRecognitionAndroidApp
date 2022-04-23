@@ -81,13 +81,16 @@ public class PickActivity extends AppCompatActivity {
         listView = findViewById(R.id.pick_results_list);
         listView.setAdapter(adapter);
 
+        // placeholder text
+        listOfResults.add(0, "No image selected. Choose an image and the results will appear here.");
+        adapter.notifyDataSetChanged();
+
         // load model
         try {
             objectDetection = new ObjectDetection(getAssets());
             Log.d(TAG, "Model is successfully loaded");
         } catch (IOException e) {
-            Log.d(TAG, "Getting some error");
-            e.printStackTrace();
+            Log.d(TAG, "Getting some error: " + e.getMessage());
         }
 
         // action for select image button

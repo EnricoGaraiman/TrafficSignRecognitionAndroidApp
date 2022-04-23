@@ -32,9 +32,11 @@ import java.util.Objects;
 public class ObjectDetection {
     private String TAG = "ObjectDetection";
 
+    // interpreters
     private Interpreter detectionInterpreter;
     private Interpreter recognitionInterpreter;
 
+    // data members
     private List<String> labelList;
     private int pixelSize = 3; // rgb
     private final boolean quantized = false;
@@ -204,7 +206,7 @@ public class ObjectDetection {
                             Imgproc.putText(matImgRotate,
                                     displayedText,
                                     new Point(res[1] * frameWidth - res[3] * frameWidth * aspectRatio / 2, res[2] * frameHeight - res[4] * frameHeight / aspectRatio / 2 - 6),
-                                    1, 1, new Scalar(251, 243, 242, 255), 2);
+                                    1, 1, new Scalar(28, 118, 143, 255), 2);
 
                             // add latency
                             latency += recognition[2];
@@ -233,26 +235,10 @@ public class ObjectDetection {
             d.release();
         }
 
-        // add result for frontend list
-        String returnedText = "";
-        if(realTime) {
-            returnedText += displayedTextArray.size() + " signs";
-            returnedText += "\n" + latency + " ms";
-            if(listOfResults.size() > 0) {
-                listOfResults.remove(0);
-            }
-            listOfResults.add(returnedText);
-        }
-        else {
-            returnedText += "Number of detected signs: " + displayedTextArray.size() + "\n\n";
-            for (String text : displayedTextArray) {
-                returnedText += text + "\n";
-            }
-            returnedText += "\n" + latency + " ms";
-            listOfResults.add(0, returnedText);
-        }
+        // get list of results
+        getListOfResults(listOfResults, displayedTextArray, latency, realTime);
 
-
+        // log total latency
         Log.d(TAG, "drawBoxes: Total latency: " + latency + " ms");
     }
 
@@ -366,7 +352,7 @@ public class ObjectDetection {
         // detection
         detectionInterpreter.runForMultipleInputsOutputs(input, outputMap);
 
-        // get latence
+        // get latency
         long stopTime = System.currentTimeMillis();
 
         // draw boxes and return modified image
@@ -502,4 +488,28 @@ public class ObjectDetection {
 
         return false;
     }
+
+    /*----------------------------------------------*/
+    /* Add recognition results in a list of results */
+    /*----------------------------------------------*/
+    private void getListOfResults(List<String> listOfResults, List<String> displayedTextArray, long latency, boolean realTime) {
+        String returnedText = "";
+        if(realTime) {
+            returnedText += displayedTextArray.size() + " signs";
+            returnedText += "\n" + latency + " ms";
+            if(listOfResults.size() > 0) {
+                listOfResults.remove(0);
+            }
+            listOfResults.add(returnedText);
+        }
+        else {
+            returnedText += "Number of detected signs: " + displayedTextArray.size() + "\n\n";
+            for (String text : displayedTextArray) {
+                returnedText += text + "\n";
+            }
+            returnedText += "\n" + latency + " ms";
+            listOfResults.add(0, returnedText);
+        }
+    }
+
 }
