@@ -159,7 +159,7 @@ public class ObjectDetection {
             if (scoreValue > confidence) {
 
                 // check if a detection overlay showed detections
-                if (!checkOverlayedDetections(showedResults, res, detectedWidth, detectedHeight)) {
+                if (!checkOverlayedBoxes(showedResults, res, detectedWidth, detectedHeight)) {
                     try {
                         // crop image
                         Rect rect = new Rect(
@@ -255,9 +255,6 @@ public class ObjectDetection {
     private float[] recognitionImage(Mat matImg) {
         float[] result = new float[3];
 
-        // measure latency
-        long startTime = System.currentTimeMillis();
-
         // convert to bitmap
         Bitmap bitmap;
         bitmap = Bitmap.createBitmap(matImg.cols(), matImg.rows(), Bitmap.Config.ARGB_8888);
@@ -274,6 +271,9 @@ public class ObjectDetection {
         // define output
         Map<Integer, Object> outputMap = new HashMap<>();
         outputMap.put(0, new float[1][numberOfClasses]);
+
+        // measure latency
+        long startTime = System.currentTimeMillis();
 
         // make recognition
         recognitionInterpreter.runForMultipleInputsOutputs(input, outputMap);
@@ -295,9 +295,6 @@ public class ObjectDetection {
     /* Frame processing real time  */
     /*-----------------------------*/
     public Map<Integer, Object> detectionFrame(Mat matImg) {
-        // measure latency
-        long startTime = System.currentTimeMillis();
-
         // rotate image
         Mat matImgRotate = new Mat();
         Mat a = matImg.t();
@@ -321,6 +318,9 @@ public class ObjectDetection {
         Map<Integer, Object> outputMap = new HashMap<>();
         outputMap.put(0, new float[1][25200][6]);
 
+        // measure latency
+        long startTime = System.currentTimeMillis();
+
         // prediction
         detectionInterpreter.runForMultipleInputsOutputs(input, outputMap);
 
@@ -336,9 +336,6 @@ public class ObjectDetection {
     /* Recognize photo from storage */
     /*------------------------------*/
     public Mat detectionImage(Mat matImg, List<String> listOfResults) {
-        // measure latency
-        long startTime = System.currentTimeMillis();
-
         // convert to bitmap
         Bitmap bitmap;
         bitmap = Bitmap.createBitmap(matImg.cols(), matImg.rows(), Bitmap.Config.ARGB_8888);
@@ -355,6 +352,9 @@ public class ObjectDetection {
         // define output
         Map<Integer, Object> outputMap = new HashMap<>();
         outputMap.put(0, new float[1][25200][6]);
+
+        // measure latency
+        long startTime = System.currentTimeMillis();
 
         // detection
         detectionInterpreter.runForMultipleInputsOutputs(input, outputMap);
@@ -478,9 +478,9 @@ public class ObjectDetection {
     /*-------------------------------*/
     /* Check overlayed detections    */
     /*-------------------------------*/
-    private boolean checkOverlayedDetections(List<float[]> showedResults, float[] result, int width, int height) {
+    private boolean checkOverlayedBoxes(List<float[]> showedResults, float[] result, int width, int height) {
         float xA, yA, xB, yB;
-        float areaA, areaB, minArea;
+        float areaA, areaB, areaThreshold = 10;
 
         for (float[] res : showedResults) {
             xA = Math.max(result[1] * width - result[3] * width / 2, res[1] * width - res[3] * width / 2);
@@ -491,8 +491,7 @@ public class ObjectDetection {
             // if boxes intersect
             areaA = Math.max(0, xB - xA + 1);
             areaB = Math.max(0, yB - yA + 1);
-            minArea = Math.max(areaA, areaB) * 0.8F;
-            if (areaA * areaB > minArea) {
+            if (areaA * areaB > 0 && (areaA > areaThreshold && areaB > areaThreshold)) {
                 return true;
             }
         }
