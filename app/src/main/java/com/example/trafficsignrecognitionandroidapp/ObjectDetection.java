@@ -139,7 +139,7 @@ public class ObjectDetection {
         float[] recognition;
         long latency;
         int padding = 10;
-        String displayedText;
+        String displayedText, classText, accText;
         List<String> displayedTextArray = new ArrayList<>();
         List<float[]> showedResults = new ArrayList<>();
 
@@ -199,12 +199,19 @@ public class ObjectDetection {
                                     new Scalar(250, 153, 28, 255), 2);
 
                             // set class and accuracy as text
-                            displayedText = labelList.get((int) recognition[1]) + " (" + String.format("%.2f", recognition[0] * 100) + "%)";
+                            classText = labelList.get((int) recognition[1]);
+                            accText = "(" + String.format("%.2f", recognition[0] * 100) + "%)";
+                            displayedText =  classText + " " + accText;
                             displayedTextArray.add(displayedText);
 
                             // write text on frame
                             Imgproc.putText(matImgRotate,
-                                    displayedText,
+                                    classText,
+                                    new Point(res[1] * frameWidth - res[3] * frameWidth * aspectRatio / 2, res[2] * frameHeight - res[4] * frameHeight / aspectRatio / 2 - 26),
+                                    1, 1, new Scalar(28, 118, 143, 255), 2);
+
+                            Imgproc.putText(matImgRotate,
+                                    accText,
                                     new Point(res[1] * frameWidth - res[3] * frameWidth * aspectRatio / 2, res[2] * frameHeight - res[4] * frameHeight / aspectRatio / 2 - 6),
                                     1, 1, new Scalar(28, 118, 143, 255), 2);
 
@@ -473,6 +480,7 @@ public class ObjectDetection {
     /*-------------------------------*/
     private boolean checkOverlayedDetections(List<float[]> showedResults, float[] result, int width, int height) {
         float xA, yA, xB, yB;
+        float areaA, areaB, minArea;
 
         for (float[] res : showedResults) {
             xA = Math.max(result[1] * width - result[3] * width / 2, res[1] * width - res[3] * width / 2);
@@ -481,7 +489,10 @@ public class ObjectDetection {
             yB = Math.min(result[2] * height + result[4] * height / 2, res[2] * height + res[4] * height / 2);
 
             // if boxes intersect
-            if (Math.max(0, xB - xA + 1) * Math.max(0, yB - yA + 1) > 0) {
+            areaA = Math.max(0, xB - xA + 1);
+            areaB = Math.max(0, yB - yA + 1);
+            minArea = Math.max(areaA, areaB) * 0.8F;
+            if (areaA * areaB > minArea) {
                 return true;
             }
         }
@@ -507,7 +518,7 @@ public class ObjectDetection {
             for (String text : displayedTextArray) {
                 returnedText += text + "\n";
             }
-            returnedText += "\n" + latency + " ms";
+            returnedText += "\nTotal latency: " + latency + " ms";
             listOfResults.add(0, returnedText);
         }
     }

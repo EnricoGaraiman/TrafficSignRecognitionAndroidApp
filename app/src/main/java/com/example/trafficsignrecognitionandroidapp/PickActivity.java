@@ -4,10 +4,13 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.provider.MediaStore;
+import android.provider.OpenableColumns;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
@@ -15,6 +18,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
@@ -22,13 +26,22 @@ import org.opencv.android.Utils;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 public class PickActivity extends AppCompatActivity {
     private String TAG = "Pick Activity";
+    private String defaultText = "No image selected. Choose an image and the results will appear here.";
     private Button selectImage;
+    private Button downloadResults;
     private ListView listView;
     private List<String> listOfResults = new ArrayList<>();
     private ArrayAdapter<String> adapter;
@@ -71,6 +84,7 @@ public class PickActivity extends AppCompatActivity {
 
         // define btn image
         selectImage = findViewById(R.id.select_button);
+        downloadResults = findViewById(R.id.download_button);
         imageView = findViewById(R.id.image_view);
 
         // add placeholder for image container
@@ -82,7 +96,7 @@ public class PickActivity extends AppCompatActivity {
         listView.setAdapter(adapter);
 
         // placeholder text
-        listOfResults.add(0, "No image selected. Choose an image and the results will appear here.");
+        listOfResults.add(0, defaultText);
         adapter.notifyDataSetChanged();
 
         // load model
@@ -101,6 +115,16 @@ public class PickActivity extends AppCompatActivity {
                 imageChooser();
             }
         });
+
+        // action for download results button
+        downloadResults.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // choose image when button is clicked
+                downloadResultsOfRecognition();
+            }
+        });
+
     }
 
     private void imageChooser() {
@@ -117,6 +141,10 @@ public class PickActivity extends AppCompatActivity {
 
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+
+        if(listOfResults.get(0).equals(defaultText)) {
+            listOfResults.remove(0);
+        }
 
         if(resultCode==RESULT_OK) {
             if(requestCode==SELECT_PICTURE) {
@@ -150,10 +178,56 @@ public class PickActivity extends AppCompatActivity {
                     imageView.setImageBitmap(bitmapRecognize);
 
                     // notify for new results
+                    String result = "Image name: \n" + getFileName(selectedImageUri) + "\n\n" + listOfResults.get(0);
+                    listOfResults.remove(0);
+                    listOfResults.add(0, result);
                     adapter.notifyDataSetChanged();
                 }
             }
         }
+    }
+
+    private void downloadResultsOfRecognition() {
+        if(listOfResults.get(0).equals(defaultText)) {
+            Toast.makeText(getApplicationContext(), "To download you must make at least one recognition.", Toast.LENGTH_SHORT).show();
+        }
+        else {
+            try {
+                File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "Traffic sign recognition");
+                if (!file.exists()) {
+                    file.mkdir();
+                }
+                File gpxfile = new File(file, "traffic-sign-recognition-results-" + new SimpleDateFormat("dd-MM-yyyy-HH-mm-ss", Locale.getDefault()).format(new Date()) + ".txt");
+                FileWriter writer = new FileWriter(gpxfile);
+                for (String result : listOfResults) {
+                    writer.append(result).append("\n-----------------------------------\n");
+                }
+                writer.flush();
+                writer.close();
+                Toast.makeText(getApplicationContext(), "File saved successfully in " + Environment.DIRECTORY_DOWNLOADS + "/Traffic sign recognition", Toast.LENGTH_SHORT).show();
+            } catch (IOException e) {
+                Toast.makeText(getApplicationContext(), "An error occurs. Try again", Toast.LENGTH_SHORT).show();
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private String getFileName(Uri uri) throws IllegalArgumentException {
+        // Obtain a cursor with information regarding this uri
+        Cursor cursor = getContentResolver().query(uri, null, null, null, null);
+
+        // check cursor length
+        if (cursor.getCount() <= 0) {
+            cursor.close();
+            throw new IllegalArgumentException("Can't obtain file name, cursor is empty");
+        }
+
+        cursor.moveToFirst();
+        String fileName = cursor.getString(cursor.getColumnIndexOrThrow(OpenableColumns.DISPLAY_NAME));
+        cursor.close();
+
+        // return real filename
+        return fileName;
     }
 
 }
