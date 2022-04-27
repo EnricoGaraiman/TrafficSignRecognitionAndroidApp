@@ -14,7 +14,6 @@ import org.opencv.android.Utils;
 import org.opencv.core.Mat;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -26,7 +25,6 @@ public class JavaCameraDetectionView extends JavaCameraView {
     private CompletableFuture<?> detectionOutput;
     private Map<Integer, Object> lastDetection;
     private List<String> listOfResults = CameraActivity.listOfResults;
-    private Mat detectionFrame;
     private Context context;
 
     public JavaCameraDetectionView(Context context, int cameraId) {
@@ -45,7 +43,6 @@ public class JavaCameraDetectionView extends JavaCameraView {
             // get camera frame async
             if (detectionOutput == null) {
                 detectionOutput = mListener.onCameraFrameAsync(frame);
-                detectionFrame = modified.clone();
             }
             else {
                 // if recognition is done
@@ -70,7 +67,7 @@ public class JavaCameraDetectionView extends JavaCameraView {
                 // draw box on current frame, not frame used for detection
                 try {
                     ObjectDetection objectDetection = new ObjectDetection(context.getAssets());
-                    objectDetection.drawBoxes(lastDetection, modified, detectionFrame, 0, true, listOfResults);
+                    objectDetection.drawBoxes(lastDetection, modified, listOfResults, true);
                     // see results on main thread for UI
                     new Handler(Looper.getMainLooper()).post(() -> CameraActivity.adapter.notifyDataSetChanged());
                 } catch (IOException e) {
@@ -96,8 +93,8 @@ public class JavaCameraDetectionView extends JavaCameraView {
             Canvas canvas = getHolder().lockCanvas();
 
             // camera preview portrait mode
-            float mScale1=0;
-            float mScale2=0;
+            float mScale1;
+            float mScale2;
 
             // get scale value
             if(canvas.getHeight()>canvas.getWidth()){

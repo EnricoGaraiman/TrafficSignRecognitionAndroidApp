@@ -108,53 +108,105 @@ public class ObjectDetection {
     /*------------------------------*/
     /* Draw boxes after detection   */
     /*------------------------------*/
-    public void drawBoxes(Map<Integer, Object> outputMap, Mat matImg, Mat detectedImg, long latencyStorage, boolean realTime, List<String> listOfResults) {
+    public void drawBoxes(Map<Integer, Object> recognitionOutputMap, Mat matImg, List<String> listOfResults, boolean realTime) {
         // rotate image if real time images from camera
         Mat matImgRotate = matImg;
-        Mat detectedMatImgRotate = detectedImg;
 
+        // rotate matImg
         if (realTime) {
-            // rotate matImg
             Mat a = matImg.t();
             Core.flip(a, matImgRotate, 1);
             a.release();
-
-            // rotate detectedImg
-            Mat b = detectedImg.t();
-            Core.flip(b, detectedMatImgRotate, 1);
-            b.release();
         }
 
+        // initializations
+        int frameWidth = matImgRotate.width();
+        int frameHeight = matImgRotate.height();
+        float scoreValue;
+        String displayedText, classText, accText;
+        List<String> displayedTextArray = new ArrayList<>();
+
+        // detection latency
+        int latency = (int) recognitionOutputMap.get(0);
+
+        // for each recognition, draw result
+        for(int i = 1; i < recognitionOutputMap.size(); i ++) {
+            float[] res = (float[]) recognitionOutputMap.get(i);
+            scoreValue = res[0];
+            latency += res[7];
+
+            if (scoreValue > confidence) {
+                // draw rectangle in Original frame
+                Imgproc.rectangle(matImgRotate,
+                        new Point((res[1] * frameWidth - res[3] * frameWidth / 2), (res[2] * frameHeight - res[4] * frameHeight / 2)),
+                        new Point((res[1] * frameWidth + res[3] * frameWidth / 2), (res[2] * frameHeight + res[4] * frameHeight / 2)),
+                        new Scalar(250, 153, 28, 255), 2);
+
+                // set class and accuracy as text
+                classText = labelList.get((int) res[6]);
+                accText = "(" + String.format("%.2f", res[5] * 100) + "%)";
+                displayedText =  classText + " " + accText;
+                displayedTextArray.add(displayedText);
+
+                // write text on frame
+                Imgproc.putText(matImgRotate,
+                        classText,
+                        new Point(res[1] * frameWidth - res[3] * frameWidth / 2, res[2] * frameHeight - res[4] * frameHeight / 2 - 26),
+                        1, 1, new Scalar(28, 118, 143, 255), 2);
+
+                Imgproc.putText(matImgRotate,
+                        accText,
+                        new Point(res[1] * frameWidth - res[3] * frameWidth / 2, res[2] * frameHeight - res[4] * frameHeight / 2 - 6),
+                        1, 1, new Scalar(28, 118, 143, 255), 2);
+                }
+            }
+
+        // rotate image if real time images from camera
+        if (realTime) {
+            // rotate matImg back
+            Mat c = matImgRotate.t();
+            Core.flip(c, matImg, 0);
+            c.release();
+        }
+
+        // get list of results
+        getListOfResults(listOfResults, displayedTextArray, latency, realTime);
+
+        // log total latency
+        Log.d(TAG, "drawBoxes: Total latency: " + latency + " ms");
+    }
+
+    private Map<Integer, Object> recognition(Map<Integer, Object> outputMap, Mat detectedImg, int latencyStorage) {
         // resize detectedMatImgRotate
         Mat resizedDetectedMatImgRotate = new Mat();
-        Imgproc.resize(detectedMatImgRotate, resizedDetectedMatImgRotate, new Size(detectionModelInputSize, detectionModelInputSize), Imgproc.INTER_AREA);
+        Imgproc.resize(detectedImg, resizedDetectedMatImgRotate, new Size(detectionModelInputSize, detectionModelInputSize), Imgproc.INTER_AREA);
 
         // initializations
         int detectedWidth = resizedDetectedMatImgRotate.width();
         int detectedHeight = resizedDetectedMatImgRotate.height();
-        int frameWidth = matImgRotate.width();
-        int frameHeight = matImgRotate.height();
-        float aspectRatio = realTime ? (float) frameHeight/frameWidth : 1;
         float scoreValue;
         float[] recognition;
-        long latency;
+        int detectionLatency;
         int padding = 10;
-        String displayedText, classText, accText;
-        List<String> displayedTextArray = new ArrayList<>();
         List<float[]> showedResults = new ArrayList<>();
+        Map<Integer, Object> recognitionOutputMap = new HashMap<>();
 
         // get detection latency
         if (latencyStorage != 0) {
-            latency = latencyStorage;
+            detectionLatency = latencyStorage;
         }
         else {
-            latency = (long) Objects.requireNonNull(outputMap.get(1));
+            detectionLatency = (int) Objects.requireNonNull(outputMap.get(1));
         }
+        recognitionOutputMap.put(0, detectionLatency);
 
-        // get first N results and draw boxes
+        // get first N results
         float[][] result = getFirstNResults((float[][]) Array.get(Objects.requireNonNull(outputMap.get(0)), 0));
 
+        // for each detection box, make recognition
+        int i = 1;
         for (float[] res : result) {
+            float[] recognitionResult = new float[8];
             scoreValue = res[0];
             if (scoreValue > confidence) {
 
@@ -192,61 +244,31 @@ public class ObjectDetection {
                             // make recognition traffic sign
                             recognition = recognitionImage(croppedImg);
 
-                            // draw rectangle in Original frame
-                            Imgproc.rectangle(matImgRotate,
-                                    new Point((res[1] * frameWidth - res[3] * frameWidth * aspectRatio / 2), (res[2] * frameHeight - res[4] * frameHeight / aspectRatio / 2)),
-                                    new Point((res[1] * frameWidth + res[3] * frameWidth * aspectRatio / 2), (res[2] * frameHeight + res[4] * frameHeight / aspectRatio / 2)),
-                                    new Scalar(250, 153, 28, 255), 2);
-
-                            // set class and accuracy as text
-                            classText = labelList.get((int) recognition[1]);
-                            accText = "(" + String.format("%.2f", recognition[0] * 100) + "%)";
-                            displayedText =  classText + " " + accText;
-                            displayedTextArray.add(displayedText);
-
-                            // write text on frame
-                            Imgproc.putText(matImgRotate,
-                                    classText,
-                                    new Point(res[1] * frameWidth - res[3] * frameWidth * aspectRatio / 2, res[2] * frameHeight - res[4] * frameHeight / aspectRatio / 2 - 26),
-                                    1, 1, new Scalar(28, 118, 143, 255), 2);
-
-                            Imgproc.putText(matImgRotate,
-                                    accText,
-                                    new Point(res[1] * frameWidth - res[3] * frameWidth * aspectRatio / 2, res[2] * frameHeight - res[4] * frameHeight / aspectRatio / 2 - 6),
-                                    1, 1, new Scalar(28, 118, 143, 255), 2);
-
-                            // add latency
-                            latency += recognition[2];
-
                             // add this result to showed results (remove overlayed detections)
                             showedResults.add(res);
+
+                            // recognitionResult
+                            recognitionResult[0] = res[0]; // detection accuracy
+                            recognitionResult[1] = res[1]; // x
+                            recognitionResult[2] = res[2]; // y
+                            recognitionResult[3] = res[3]; // w
+                            recognitionResult[4] = res[4]; // h
+                            recognitionResult[5] = recognition[0]; // class
+                            recognitionResult[6] = recognition[1]; // recognition accuracy
+                            recognitionResult[7] = recognition[2]; // recognition latency
+                            recognitionOutputMap.put(i, recognitionResult);
+                            i++;
                         }
                     }
                     catch (Exception e) {
-                        Log.e(TAG, "drawBoxes: Error: " + e.getMessage());
+                        Log.e(TAG, "recognition: Error: " + e.getMessage());
                     }
                 }
             }
         }
 
-        // rotate image if real time images from camera
-        if (realTime) {
-            // rotate matImg back
-            Mat c = matImgRotate.t();
-            Core.flip(c, matImg, 0);
-            c.release();
 
-            // rotate detectedImg back
-            Mat d = detectedMatImgRotate.t();
-            Core.flip(d, detectedImg, 0);
-            d.release();
-        }
-
-        // get list of results
-        getListOfResults(listOfResults, displayedTextArray, latency, realTime);
-
-        // log total latency
-        Log.d(TAG, "drawBoxes: Total latency: " + latency + " ms");
+        return recognitionOutputMap;
     }
 
     /*------------------------------*/
@@ -273,13 +295,13 @@ public class ObjectDetection {
         outputMap.put(0, new float[1][numberOfClasses]);
 
         // measure latency
-        long startTime = System.currentTimeMillis();
+        int startTime = (int) System.currentTimeMillis();
 
         // make recognition
         recognitionInterpreter.runForMultipleInputsOutputs(input, outputMap);
 
         // get latency
-        long stopTime = System.currentTimeMillis();
+        int stopTime = (int) System.currentTimeMillis();
 
         // get results
         float[] accAndClass = getAccuracyAndClassRecognition((float[]) Array.get(outputMap.get(0), 0));
@@ -319,17 +341,17 @@ public class ObjectDetection {
         outputMap.put(0, new float[1][25200][6]);
 
         // measure latency
-        long startTime = System.currentTimeMillis();
+        int startTime = (int) System.currentTimeMillis();
 
         // prediction
         detectionInterpreter.runForMultipleInputsOutputs(input, outputMap);
 
         // get latency
-        long stopTime = System.currentTimeMillis();
+        int stopTime = (int) System.currentTimeMillis();
         outputMap.put(1, stopTime - startTime);
 
         // return result for drawing
-        return outputMap;
+        return recognition(outputMap, matImgRotate, 0);
     }
 
     /*------------------------------*/
@@ -354,16 +376,19 @@ public class ObjectDetection {
         outputMap.put(0, new float[1][25200][6]);
 
         // measure latency
-        long startTime = System.currentTimeMillis();
+        int startTime = (int) System.currentTimeMillis();
 
         // detection
         detectionInterpreter.runForMultipleInputsOutputs(input, outputMap);
 
         // get latency
-        long stopTime = System.currentTimeMillis();
+        int stopTime = (int) System.currentTimeMillis();
+
+        // make recognition
+        Map<Integer, Object> recognitionOutputMap = recognition(outputMap, matImg, stopTime - startTime);
 
         // draw boxes and return modified image
-        drawBoxes(outputMap, matImg, matImg, stopTime - startTime, false, listOfResults);
+        drawBoxes(recognitionOutputMap, matImg, listOfResults, false);
         return matImg;
     }
 
@@ -502,7 +527,7 @@ public class ObjectDetection {
     /*----------------------------------------------*/
     /* Add recognition results in a list of results */
     /*----------------------------------------------*/
-    private void getListOfResults(List<String> listOfResults, List<String> displayedTextArray, long latency, boolean realTime) {
+    private void getListOfResults(List<String> listOfResults, List<String> displayedTextArray, float latency, boolean realTime) {
         String returnedText = "";
         if(realTime) {
             returnedText += displayedTextArray.size() + " signs";
