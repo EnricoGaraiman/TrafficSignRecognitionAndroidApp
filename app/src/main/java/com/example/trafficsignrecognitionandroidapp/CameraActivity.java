@@ -117,7 +117,7 @@ public class CameraActivity extends Activity implements CameraBridgeViewBase.CvC
         mOpenCvCameraView.setVisibility(SurfaceView.VISIBLE);
         mOpenCvCameraView.setCvCameraViewListener(this);
         mOpenCvCameraView.enableFpsMeter(); // fps
-        mOpenCvCameraView.setMaxFrameSize(640, 640); // max frame size improve FPS, reduce performance
+        mOpenCvCameraView.setMaxFrameSize(640, 640); // max frame size improve FPS
 
         // get model
         try {

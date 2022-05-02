@@ -9,7 +9,7 @@ import android.util.AttributeSet;
 import android.util.Log;
 
 import org.opencv.BuildConfig;
-import org.opencv.android.JavaCameraView;
+import org.opencv.android.JavaCamera2View;
 import org.opencv.android.Utils;
 import org.opencv.core.Mat;
 
@@ -19,7 +19,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
-public class JavaCameraDetectionView extends JavaCameraView {
+public class JavaCameraDetectionView extends JavaCamera2View {
 
     private static final String TAG = "CameraBridgeDetectionView";
     private CompletableFuture<?> detectionOutput;
@@ -98,7 +98,7 @@ public class JavaCameraDetectionView extends JavaCameraView {
 
             // get scale value
             if(canvas.getHeight()>canvas.getWidth()){
-                canvas.rotate(90f,canvas.getWidth()/2,canvas.getHeight()/2);
+                canvas.rotate(90f,canvas.getWidth()/2F,canvas.getHeight()/2F);
                 mScale1=(float)canvas.getHeight()/(float)mCacheBitmap.getWidth();
                 mScale2=(float)canvas.getWidth()/(float)mCacheBitmap.getHeight();
             }
@@ -126,6 +126,7 @@ public class JavaCameraDetectionView extends JavaCameraView {
                     mFpsMeter.draw(canvas, 20, 30);
                 }
                 getHolder().unlockCanvasAndPost(canvas);
+                System.gc(); // !release memory
             }
         }
     }
