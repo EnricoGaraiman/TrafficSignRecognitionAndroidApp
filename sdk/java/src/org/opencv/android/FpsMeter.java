@@ -17,7 +17,7 @@ public class FpsMeter {
     private int                 mFramesCounter;
     private double              mFrequency;
     private long                mprevFrameTime;
-    private String              mStrfps;
+    public String               mStrfps;
     Paint                       mPaint;
     boolean                     mIsInitialized = false;
     int                         mWidth = 0;

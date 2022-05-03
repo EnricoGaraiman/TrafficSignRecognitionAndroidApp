@@ -67,7 +67,7 @@ public class JavaCameraDetectionView extends JavaCamera2View {
                 // draw box on current frame, not frame used for detection
                 try {
                     ObjectDetection objectDetection = new ObjectDetection(context.getAssets());
-                    objectDetection.drawBoxes(lastDetection, modified, listOfResults, true);
+                    objectDetection.drawBoxes(lastDetection, modified, listOfResults, true, mFpsMeter.mStrfps);
                     // see results on main thread for UI
                     new Handler(Looper.getMainLooper()).post(() -> CameraActivity.adapter.notifyDataSetChanged());
                 } catch (IOException e) {

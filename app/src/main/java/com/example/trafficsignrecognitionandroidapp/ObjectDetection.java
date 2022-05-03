@@ -108,7 +108,7 @@ public class ObjectDetection {
     /*------------------------------*/
     /* Draw boxes after detection   */
     /*------------------------------*/
-    public void drawBoxes(Map<Integer, Object> recognitionOutputMap, Mat matImg, List<String> listOfResults, boolean realTime) {
+    public void drawBoxes(Map<Integer, Object> recognitionOutputMap, Mat matImg, List<String> listOfResults, boolean realTime, String FPS) {
         // rotate image if real time images from camera
         Mat matImgRotate = matImg;
 
@@ -170,7 +170,7 @@ public class ObjectDetection {
         }
 
         // get list of results
-        getListOfResults(listOfResults, displayedTextArray, latency, realTime);
+        getListOfResults(listOfResults, displayedTextArray, latency, realTime, FPS);
 
         // log total latency
         Log.d(TAG, "drawBoxes: Total latency: " + latency + " ms");
@@ -388,7 +388,7 @@ public class ObjectDetection {
         Map<Integer, Object> recognitionOutputMap = recognition(outputMap, matImg, stopTime - startTime);
 
         // draw boxes and return modified image
-        drawBoxes(recognitionOutputMap, matImg, listOfResults, false);
+        drawBoxes(recognitionOutputMap, matImg, listOfResults, false, "0");
         return matImg;
     }
 
@@ -527,11 +527,12 @@ public class ObjectDetection {
     /*----------------------------------------------*/
     /* Add recognition results in a list of results */
     /*----------------------------------------------*/
-    private void getListOfResults(List<String> listOfResults, List<String> displayedTextArray, float latency, boolean realTime) {
+    private void getListOfResults(List<String> listOfResults, List<String> displayedTextArray, float latency, boolean realTime, String FPS) {
         String returnedText = "";
         if(realTime) {
             returnedText += displayedTextArray.size() + " signs";
             returnedText += "\n" + latency + " ms";
+            returnedText += "\n" + FPS;
             if(listOfResults.size() > 0) {
                 listOfResults.remove(0);
             }

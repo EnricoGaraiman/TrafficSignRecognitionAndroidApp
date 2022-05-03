@@ -44,8 +44,8 @@
 
     <ListView
         android:id="@+id/real_time_results"
-        android:layout_width="120dp"
-        android:layout_height="50dp"
+        android:layout_width="110dp"
+        android:layout_height="62dp"
         android:layout_below="@id/toolbar_top"
         android:layout_alignParentEnd="true"
         android:layout_marginTop="10dp"

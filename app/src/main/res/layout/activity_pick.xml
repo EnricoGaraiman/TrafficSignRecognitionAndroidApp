@@ -65,7 +65,7 @@
             android:layout_marginStart="10dp"
             android:layout_marginTop="10dp"
             android:layout_marginEnd="10dp"
-            android:layout_weight="1.5"
+            android:layout_weight="1.6"
             android:background="@drawable/rounded_view"
             android:gravity="center_vertical|center_horizontal" />
 
@@ -73,7 +73,7 @@
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:gravity="center_vertical|center_horizontal"
-            android:layout_weight="0.5"
+            android:layout_weight="0.4"
             android:weightSum="1"
             android:layout_marginBottom="45dp"
             android:layout_marginStart="10dp"
@@ -92,7 +92,8 @@
                 android:textAllCaps="false"
                 android:textColor="@color/background"
                 android:textSize="18sp"
-                tools:ignore="NestedWeights" />
+                tools:ignore="NestedWeights"
+                style="?android:attr/buttonBarButtonStyle" />
 
             <Button
                 android:id="@+id/select_button"
@@ -104,7 +105,8 @@
                 android:text="@string/select_a_image"
                 android:textAllCaps="false"
                 android:textColor="@color/background"
-                android:textSize="18sp" />
+                android:textSize="18sp"
+                style="?android:attr/buttonBarButtonStyle" />
         </LinearLayout>
     </LinearLayout>
 
