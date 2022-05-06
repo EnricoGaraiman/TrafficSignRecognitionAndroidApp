@@ -3,8 +3,6 @@ package com.example.trafficsignrecognitionandroidapp;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Rect;
-import android.os.Handler;
-import android.os.Looper;
 import android.util.AttributeSet;
 import android.util.Log;
 
@@ -21,10 +19,11 @@ import java.util.concurrent.ExecutionException;
 
 public class JavaCameraDetectionView extends JavaCamera2View {
 
-    private static final String TAG = "CameraBridgeDetectionView";
-    private CompletableFuture<?> detectionOutput;
-    private Map<Integer, Object> lastDetection;
+    private String TAG = "CameraBridgeDetectionView";
+    private CompletableFuture<?> recognitionOutput;
+    private Map<Integer, Object> lastRecognition;
     private List<String> listOfResults = CameraActivity.listOfResults;
+    private List<Integer> displayedSignClass = CameraActivity.displayedSignClass;
     private Context context;
 
     public JavaCameraDetectionView(Context context, int cameraId) {
@@ -41,16 +40,16 @@ public class JavaCameraDetectionView extends JavaCamera2View {
 
         if (mListener != null) {
             // get camera frame async
-            if (detectionOutput == null) {
-                detectionOutput = mListener.onCameraFrameAsync(frame);
+            if (recognitionOutput == null) {
+                recognitionOutput = mListener.onCameraFrameAsync(frame);
             }
             else {
                 // if recognition is done
-                if (detectionOutput.isDone()){
+                if (recognitionOutput.isDone()){
                     try {
-                        Object detection = detectionOutput.get();
-                        if (detection instanceof Map) {
-                            lastDetection = (Map<Integer, Object>) detectionOutput.get();
+                        Object recognition = recognitionOutput.get();
+                        if (recognition instanceof Map) {
+                            lastRecognition = (Map<Integer, Object>) recognition;
                         } else {
                             throw new IllegalArgumentException();
                         }
@@ -58,19 +57,18 @@ public class JavaCameraDetectionView extends JavaCamera2View {
                     catch (ExecutionException | InterruptedException e) {
                         e.printStackTrace();
                     }
-                    detectionOutput = null;
+                    recognitionOutput = null;
                 }
             }
 
             // draw last prediction -> remove blinking effect
-            if (lastDetection != null){
+            if (lastRecognition != null){
                 // draw box on current frame, not frame used for detection
                 try {
-                    ObjectDetection objectDetection = new ObjectDetection(context.getAssets());
-                    objectDetection.drawBoxes(lastDetection, modified, listOfResults, true, mFpsMeter.mStrfps);
-                    // see results on main thread for UI
-                    new Handler(Looper.getMainLooper()).post(() -> CameraActivity.adapter.notifyDataSetChanged());
-                } catch (IOException e) {
+                    SignRecognition signRecognition = new SignRecognition(context.getAssets());
+                    signRecognition.drawBoxes(lastRecognition, modified, listOfResults, displayedSignClass, true, mFpsMeter.mStrfps);
+                }
+                catch (IOException e) {
                     e.printStackTrace();
                 }
             }
@@ -80,6 +78,8 @@ public class JavaCameraDetectionView extends JavaCamera2View {
         if (modified != null) {
             try {
                 Utils.matToBitmap(modified, mCacheBitmap);
+                // release memory
+                modified.release();
             }
             catch(Exception e) {
                 Log.e(TAG, "Mat type: " + modified);
@@ -126,7 +126,6 @@ public class JavaCameraDetectionView extends JavaCamera2View {
                     mFpsMeter.draw(canvas, 20, 30);
                 }
                 getHolder().unlockCanvasAndPost(canvas);
-                System.gc(); // !release memory
             }
         }
     }

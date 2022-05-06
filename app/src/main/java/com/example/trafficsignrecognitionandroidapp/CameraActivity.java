@@ -8,6 +8,7 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.MenuItem;
@@ -15,7 +16,10 @@ import android.view.SurfaceView;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.ArrayAdapter;
+import android.widget.ImageView;
 import android.widget.ListView;
+import android.widget.TableLayout;
+import android.widget.TableRow;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
@@ -37,10 +41,15 @@ public class CameraActivity extends Activity implements CameraBridgeViewBase.CvC
 
     private Mat mRgba;
     private CameraBridgeViewBase mOpenCvCameraView;
-    private ObjectDetection objectDetection;
+    private SignRecognition signRecognition;
     private ListView listView;
+    private TableLayout table;
+    private TableRow tableRow;
+    private int displayedRecognizedSignPreview = 5;
     public static List<String> listOfResults = new ArrayList<>();
-    public static ArrayAdapter<String> adapter;
+    public static List<Integer> displayedSignClass = new ArrayList<>();
+    public static ArrayAdapter<String> adapterResults;
+    public static boolean lockPreview = false;
 
     private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
         @Override
@@ -121,7 +130,7 @@ public class CameraActivity extends Activity implements CameraBridgeViewBase.CvC
 
         // get model
         try {
-            objectDetection = new ObjectDetection(getAssets());
+            signRecognition = new SignRecognition(getAssets());
             Log.d(TAG, "Model is successfully loaded");
         } catch (IOException e) {
             Log.d(TAG, "Getting some error");
@@ -129,10 +138,14 @@ public class CameraActivity extends Activity implements CameraBridgeViewBase.CvC
         }
 
         // list of results frontend
-        adapter = new ArrayAdapter<>(this, R.layout.list_item, listOfResults);
+        adapterResults = new ArrayAdapter<>(this, R.layout.list_item, listOfResults);
         listView = findViewById(R.id.real_time_results);
         listView.setDivider(null);
-        listView.setAdapter(adapter);
+        listView.setAdapter(adapterResults);
+
+        // table for preview recognized signs
+        table = findViewById(R.id.table_layout_preview_signs);
+        tableRow = (TableRow) table.getChildAt(0);
     }
 
     @Override
@@ -191,9 +204,63 @@ public class CameraActivity extends Activity implements CameraBridgeViewBase.CvC
 
         // get frame for detection on separate thread -> unblocking UI
         return CompletableFuture.supplyAsync(() -> {
+
+            // set detected signs on layout in main thread + results
+            if(!lockPreview) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        lockPreview = true;
+
+                        // see results on main thread for UI
+                        notifyRecognitionResultsChanged();
+
+                        // preview signs
+                        setRecognizedSignsPreviewOnLayout();
+
+                        // lock preview
+                        lockPreview = false;
+                    }
+                });
+            }
+
+            // return next frame
             mRgba = inputFrame.rgba();
-            return objectDetection.detectionFrame(mRgba);
+            return signRecognition.detectionFrame(mRgba);
         });
     }
 
+    private void notifyRecognitionResultsChanged() {
+        adapterResults.notifyDataSetChanged();
+    }
+
+    private void setRecognizedSignsPreviewOnLayout() {
+        int imageResource;
+        ImageView recognizedSign;
+        List<Integer> displayedSign = new ArrayList<>();
+
+        // get first displayedRecognizedSignPreview recognized sign preview
+        for (int c = 0; c < displayedRecognizedSignPreview; c++) {
+            recognizedSign = (ImageView) tableRow.getChildAt(c);
+
+            if (c < displayedSignClass.size() && !displayedSign.contains(displayedSignClass.get(c))) {
+                // get image resource based on recognized class
+                imageResource = getResources().getIdentifier("@drawable/sign_class_" + displayedSignClass.get(c), null, getPackageName());
+                Drawable res = getResources().getDrawable(imageResource, null);
+                recognizedSign.setImageDrawable(res);
+
+                // add in array for remove duplicate
+                displayedSign.add(displayedSignClass.get(c));
+            }
+            else {
+                // remove preview image
+                if(recognizedSign != null) {
+                    recognizedSign.setImageDrawable(null);
+                }
+            }
+        }
+
+        // clear displayedSignClass
+        displayedSignClass.clear();
+    }
 }

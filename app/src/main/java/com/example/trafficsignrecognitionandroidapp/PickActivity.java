@@ -42,10 +42,11 @@ public class PickActivity extends AppCompatActivity {
     private Button downloadResults;
     private ListView listView;
     private List<String> listOfResults = new ArrayList<>();
+    private List<Integer> displayedSignClass = new ArrayList<>();
     private ArrayAdapter<String> adapter;
     private ImageView imageView;
-    private ObjectDetection objectDetection;
-    int SELECT_PICTURE = 200;
+    private SignRecognition signRecognition;
+    private int SELECT_PICTURE = 200;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -99,7 +100,7 @@ public class PickActivity extends AppCompatActivity {
 
         // load model
         try {
-            objectDetection = new ObjectDetection(getAssets());
+            signRecognition = new SignRecognition(getAssets());
             Log.d(TAG, "Model is successfully loaded");
         } catch (IOException e) {
             Log.d(TAG, "Getting some error: " + e.getMessage());
@@ -165,7 +166,7 @@ public class PickActivity extends AppCompatActivity {
                     Utils.bitmapToMat(bitmap, image);
 
                     // send image to recognition method
-                    image = objectDetection.detectionImage(image, listOfResults);
+                    image = signRecognition.detectionImage(image, listOfResults, displayedSignClass);
 
                     // convert image Mat to bitmap
                     Bitmap bitmapRecognize;

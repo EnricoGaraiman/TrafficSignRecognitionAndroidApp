@@ -10,9 +10,9 @@
     <com.example.trafficsignrecognitionandroidapp.JavaCameraDetectionView
         android:id="@+id/frame_surface"
         android:layout_width="match_parent"
-        android:layout_below="@id/toolbar_top"
+        android:layout_height="match_parent"
         android:layout_above="@id/bottom_navigation"
-        android:layout_height="match_parent" />
+        android:layout_below="@id/toolbar_top" />
 
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottom_navigation"
@@ -60,5 +60,58 @@
         android:textColor="@color/orange"
         android:textSize="30sp"
         android:textStyle="bold" />
+
+    <TableLayout
+        android:id="@+id/table_layout_preview_signs"
+        android:layout_width="match_parent"
+        android:layout_height="130dp"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginStart="10dp"
+        android:layout_marginEnd="10dp"
+        android:layout_marginBottom="10dp"
+        android:textColor="@color/background">
+
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:layout_marginBottom="10dp"
+            android:weightSum="1">
+
+            <ImageView
+                android:layout_height="match_parent"
+                android:layout_width="0dp"
+                android:layout_weight="0.2"
+                android:paddingBottom="10dp"/>
+
+            <ImageView
+                android:layout_height="match_parent"
+                android:layout_width="0dp"
+                android:layout_weight="0.2"
+                android:paddingBottom="10dp"/>
+
+            <ImageView
+                android:layout_height="match_parent"
+                android:layout_width="0dp"
+                android:layout_weight="0.2"
+                android:paddingBottom="10dp"/>
+
+            <ImageView
+                android:layout_height="match_parent"
+                android:layout_width="0dp"
+                android:layout_weight="0.2"
+                android:paddingBottom="10dp"/>
+
+            <ImageView
+                android:layout_height="match_parent"
+                android:layout_width="0dp"
+                android:layout_weight="0.2"
+                android:paddingBottom="10dp"/>
+
+        </TableRow>
+
+
+    </TableLayout>
 
 </RelativeLayout>

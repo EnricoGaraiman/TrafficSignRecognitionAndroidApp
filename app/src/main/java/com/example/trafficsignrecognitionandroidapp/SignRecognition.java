@@ -29,7 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-public class ObjectDetection {
+public class SignRecognition {
     private String TAG = "ObjectDetection";
 
     // interpreters
@@ -40,7 +40,8 @@ public class ObjectDetection {
     private List<String> labelList;
     private int pixelSize = 3; // rgb
     private final boolean quantized = false;
-    private int threads = 4;
+    private int threadsDetection = 2;
+    private int threadsRecognition = 1;
     private float confidence = 0.5F;
     private int numberOfClasses;
     private int numberOfDetection = 10;
@@ -55,16 +56,20 @@ public class ObjectDetection {
     /*------------------------------*/
     /* ObjectDetection constructor  */
     /*------------------------------*/
-    ObjectDetection(AssetManager assetManager) throws IOException {
+    SignRecognition(AssetManager assetManager) throws IOException {
         // define GPU/CPU and number of threads
-        Interpreter.Options options = new Interpreter.Options();
-        options.setNumThreads(threads);
+        Interpreter.Options optionsDetection = new Interpreter.Options();
+        optionsDetection.setNumThreads(threadsDetection);
 
         // load detection model
-        detectionInterpreter = new Interpreter(loadModelFile(assetManager, detectionPathModel), options);
+        detectionInterpreter = new Interpreter(loadModelFile(assetManager, detectionPathModel), optionsDetection);
+
+        // define GPU/CPU and number of threads
+        Interpreter.Options optionsRecognition = new Interpreter.Options();
+        optionsRecognition.setNumThreads(threadsRecognition);
 
         // load recognition model
-        recognitionInterpreter = new Interpreter(loadModelFile(assetManager, recognitionPathModel), options);
+        recognitionInterpreter = new Interpreter(loadModelFile(assetManager, recognitionPathModel), optionsRecognition);
 
         // load labels
         labelList = loadLabels(assetManager, pathLabels);
@@ -108,7 +113,7 @@ public class ObjectDetection {
     /*------------------------------*/
     /* Draw boxes after detection   */
     /*------------------------------*/
-    public void drawBoxes(Map<Integer, Object> recognitionOutputMap, Mat matImg, List<String> listOfResults, boolean realTime, String FPS) {
+    public void drawBoxes(Map<Integer, Object> recognitionOutputMap, Mat matImg, List<String> listOfResults, List<Integer> displayedSignClass, boolean realTime, String FPS) {
         // rotate image if real time images from camera
         Mat matImgRotate = matImg;
 
@@ -147,6 +152,7 @@ public class ObjectDetection {
                 accText = "(" + String.format("%.2f", res[5] * 100) + "%)";
                 displayedText =  classText + " " + accText;
                 displayedTextArray.add(displayedText);
+                displayedSignClass.add(0, (int) res[6]);
 
                 // write text on frame
                 Imgproc.putText(matImgRotate,
@@ -171,6 +177,9 @@ public class ObjectDetection {
 
         // get list of results
         getListOfResults(listOfResults, displayedTextArray, latency, realTime, FPS);
+
+        // release memory
+//        matImgRotate.release();
 
         // log total latency
         Log.d(TAG, "drawBoxes: Total latency: " + latency + " ms");
@@ -259,6 +268,9 @@ public class ObjectDetection {
                             recognitionOutputMap.put(i, recognitionResult);
                             i++;
                         }
+
+                        // release memory
+//                        croppedImg.release();
                     }
                     catch (Exception e) {
                         Log.e(TAG, "recognition: Error: " + e.getMessage());
@@ -267,7 +279,10 @@ public class ObjectDetection {
             }
         }
 
+        // release memory
+//        resizedDetectedMatImgRotate.release();
 
+        // return results
         return recognitionOutputMap;
     }
 
@@ -278,8 +293,7 @@ public class ObjectDetection {
         float[] result = new float[3];
 
         // convert to bitmap
-        Bitmap bitmap;
-        bitmap = Bitmap.createBitmap(matImg.cols(), matImg.rows(), Bitmap.Config.ARGB_8888);
+        Bitmap bitmap = Bitmap.createBitmap(matImg.cols(), matImg.rows(), Bitmap.Config.ARGB_8888);
         Utils.matToBitmap(matImg, bitmap);
 
         // scale to input size of model
@@ -357,7 +371,7 @@ public class ObjectDetection {
     /*------------------------------*/
     /* Recognize photo from storage */
     /*------------------------------*/
-    public Mat detectionImage(Mat matImg, List<String> listOfResults) {
+    public Mat detectionImage(Mat matImg, List<String> listOfResults, List<Integer> displayedSignClass) {
         // convert to bitmap
         Bitmap bitmap;
         bitmap = Bitmap.createBitmap(matImg.cols(), matImg.rows(), Bitmap.Config.ARGB_8888);
@@ -388,7 +402,7 @@ public class ObjectDetection {
         Map<Integer, Object> recognitionOutputMap = recognition(outputMap, matImg, stopTime - startTime);
 
         // draw boxes and return modified image
-        drawBoxes(recognitionOutputMap, matImg, listOfResults, false, "0");
+        drawBoxes(recognitionOutputMap, matImg, listOfResults, displayedSignClass, false, "0");
         return matImg;
     }
 
