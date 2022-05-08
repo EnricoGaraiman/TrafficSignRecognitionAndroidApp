@@ -7,6 +7,7 @@ import android.util.Log;
 
 import org.opencv.android.Utils;
 import org.opencv.core.Core;
+import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
@@ -114,14 +115,17 @@ public class SignRecognition {
     /* Draw boxes after detection   */
     /*------------------------------*/
     public void drawBoxes(Map<Integer, Object> recognitionOutputMap, Mat matImg, List<String> listOfResults, List<Integer> displayedSignClass, boolean realTime, String FPS) {
+        // check input data
+        if(recognitionOutputMap.size() == 0 || matImg.empty()) {
+            return;
+        }
+
         // rotate image if real time images from camera
         Mat matImgRotate = matImg;
 
         // rotate matImg
         if (realTime) {
-            Mat a = matImg.t();
-            Core.flip(a, matImgRotate, 1);
-            a.release();
+            Core.flip(matImg.t(), matImgRotate, 1);
         }
 
         // initializations
@@ -132,7 +136,10 @@ public class SignRecognition {
         List<String> displayedTextArray = new ArrayList<>();
 
         // detection latency
-        int latency = (int) recognitionOutputMap.get(0);
+        int latency = 0;
+        if(recognitionOutputMap.size() != 0) {
+            latency = (int) recognitionOutputMap.get(0);
+        }
 
         // for each recognition, draw result
         for(int i = 1; i < recognitionOutputMap.size(); i ++) {
@@ -169,25 +176,26 @@ public class SignRecognition {
 
         // rotate image if real time images from camera
         if (realTime) {
-            // rotate matImg back
-            Mat c = matImgRotate.t();
-            Core.flip(c, matImg, 0);
-            c.release();
+            Core.flip(matImgRotate.t(), matImg, 0);
         }
 
         // get list of results
         getListOfResults(listOfResults, displayedTextArray, latency, realTime, FPS);
-
-        // release memory
-//        matImgRotate.release();
 
         // log total latency
         Log.d(TAG, "drawBoxes: Total latency: " + latency + " ms");
     }
 
     private Map<Integer, Object> recognition(Map<Integer, Object> outputMap, Mat detectedImg, int latencyStorage) {
+        Map<Integer, Object> recognitionOutputMap = new HashMap<>();
+
+        // check input data
+        if(detectedImg == null || detectedImg.empty() || outputMap.size() == 0) {
+            return recognitionOutputMap;
+        }
+
         // resize detectedMatImgRotate
-        Mat resizedDetectedMatImgRotate = new Mat();
+        Mat resizedDetectedMatImgRotate = new Mat(detectionModelInputSize, detectionModelInputSize, CvType.CV_8UC4);
         Imgproc.resize(detectedImg, resizedDetectedMatImgRotate, new Size(detectionModelInputSize, detectionModelInputSize), Imgproc.INTER_AREA);
 
         // initializations
@@ -196,9 +204,8 @@ public class SignRecognition {
         float scoreValue;
         float[] recognition;
         int detectionLatency;
-        int padding = 10;
         List<float[]> showedResults = new ArrayList<>();
-        Map<Integer, Object> recognitionOutputMap = new HashMap<>();
+        int croppedX, croppedY, croppedW, croppedH;
 
         // get detection latency
         if (latencyStorage != 0) {
@@ -221,14 +228,16 @@ public class SignRecognition {
 
                 // check if a detection overlay showed detections
                 if (!checkOverlayedBoxes(showedResults, res, detectedWidth, detectedHeight)) {
-                    try {
+
+                    // get cropped image coordinates
+                    croppedX = (int) (res[1] * detectedWidth - (res[3] * detectedWidth) / 2);
+                    croppedY = (int) (res[2] * detectedHeight - (res[4] * detectedHeight) / 2);
+                    croppedW = (int) (res[3] * detectedWidth);
+                    croppedH = (int) (res[4] * detectedHeight);
+
+                    if(croppedX > 0 && croppedY > 0 && croppedW > 0 && croppedH > 0 && !resizedDetectedMatImgRotate.empty()) {
                         // crop image
-                        Rect rect = new Rect(
-                                (int) (res[1] * detectedWidth - padding / 2 - (res[3] * detectedWidth + padding) / 2),
-                                (int) (res[2] * detectedHeight - padding / 2 - (res[4] * detectedHeight + padding) / 2),
-                                (int) (res[3] * detectedWidth + padding),
-                                (int) (res[4] * detectedHeight + padding)
-                        );
+                        Rect rect = new Rect(croppedX, croppedY, croppedW, croppedH);
                         Mat croppedImg = resizedDetectedMatImgRotate.submat(rect);
 
 //                        // save in storage
@@ -268,19 +277,10 @@ public class SignRecognition {
                             recognitionOutputMap.put(i, recognitionResult);
                             i++;
                         }
-
-                        // release memory
-//                        croppedImg.release();
-                    }
-                    catch (Exception e) {
-                        Log.e(TAG, "recognition: Error: " + e.getMessage());
                     }
                 }
             }
         }
-
-        // release memory
-//        resizedDetectedMatImgRotate.release();
 
         // return results
         return recognitionOutputMap;
@@ -318,7 +318,7 @@ public class SignRecognition {
         int stopTime = (int) System.currentTimeMillis();
 
         // get results
-        float[] accAndClass = getAccuracyAndClassRecognition((float[]) Array.get(outputMap.get(0), 0));
+        float[] accAndClass = getAccuracyAndClassRecognition((float[]) Array.get(Objects.requireNonNull(outputMap.get(0)), 0));
         result[0] = accAndClass[0]; // set accuracy
         result[1] = accAndClass[1]; // set class
         result[2] = stopTime - startTime;
@@ -331,6 +331,14 @@ public class SignRecognition {
     /* Frame processing real time  */
     /*-----------------------------*/
     public Map<Integer, Object> detectionFrame(Mat matImg) {
+        // output
+        Map<Integer, Object> outputMap = new HashMap<>();
+
+        // check if empty image
+        if(matImg == null || matImg.empty()) {
+            return recognition(outputMap, matImg, 0);
+        }
+
         // rotate image
         Mat matImgRotate = new Mat();
         Mat a = matImg.t();
@@ -351,7 +359,6 @@ public class SignRecognition {
         input[0] = byteBuffer;
 
         // output
-        Map<Integer, Object> outputMap = new HashMap<>();
         outputMap.put(0, new float[1][25200][6]);
 
         // measure latency
@@ -543,10 +550,11 @@ public class SignRecognition {
     /*----------------------------------------------*/
     private void getListOfResults(List<String> listOfResults, List<String> displayedTextArray, float latency, boolean realTime, String FPS) {
         String returnedText = "";
+
         if(realTime) {
             returnedText += displayedTextArray.size() + " signs";
             returnedText += "\n" + latency + " ms";
-            returnedText += "\n" + FPS;
+            returnedText += "\n" + FPS.split("@")[0];
             if(listOfResults.size() > 0) {
                 listOfResults.remove(0);
             }

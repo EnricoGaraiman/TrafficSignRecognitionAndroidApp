@@ -7,7 +7,7 @@ import android.util.AttributeSet;
 import android.util.Log;
 
 import org.opencv.BuildConfig;
-import org.opencv.android.JavaCamera2View;
+import org.opencv.android.JavaCameraView;
 import org.opencv.android.Utils;
 import org.opencv.core.Mat;
 
@@ -17,7 +17,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
-public class JavaCameraDetectionView extends JavaCamera2View {
+public class JavaCameraDetectionView extends JavaCameraView {
 
     private String TAG = "CameraBridgeDetectionView";
     private CompletableFuture<?> recognitionOutput;
@@ -38,6 +38,11 @@ public class JavaCameraDetectionView extends JavaCamera2View {
     protected void deliverAndDrawFrame(CvCameraViewFrame frame) {
         Mat modified = frame.rgba();
 
+        // check modified
+        if(modified == null || modified.empty())
+            return;
+
+        // async recognition
         if (mListener != null) {
             // get camera frame async
             if (recognitionOutput == null) {
@@ -67,15 +72,14 @@ public class JavaCameraDetectionView extends JavaCamera2View {
                 try {
                     SignRecognition signRecognition = new SignRecognition(context.getAssets());
                     signRecognition.drawBoxes(lastRecognition, modified, listOfResults, displayedSignClass, true, mFpsMeter.mStrfps);
-                }
-                catch (IOException e) {
+                } catch (IOException e) {
                     e.printStackTrace();
                 }
             }
         }
 
         boolean bmpValid = true;
-        if (modified != null) {
+        if (modified != null && !modified.empty() && (modified.cols() == mCacheBitmap.getWidth()) && (modified.rows() == mCacheBitmap.getHeight())) {
             try {
                 Utils.matToBitmap(modified, mCacheBitmap);
                 // release memory
@@ -87,6 +91,9 @@ public class JavaCameraDetectionView extends JavaCamera2View {
                 Log.e(TAG, "Utils.matToBitmap() throws an exception: " + e.getMessage());
                 bmpValid = false;
             }
+        }
+        else {
+            Log.e(TAG, "deliverAndDrawFrame: modifier, mCachedBitmap with problems" );
         }
 
         if (bmpValid && mCacheBitmap != null) {

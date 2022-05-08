@@ -49,7 +49,7 @@ public class CameraActivity extends Activity implements CameraBridgeViewBase.CvC
     public static List<String> listOfResults = new ArrayList<>();
     public static List<Integer> displayedSignClass = new ArrayList<>();
     public static ArrayAdapter<String> adapterResults;
-    public static boolean lockPreview = false;
+    public boolean lockPreview = false;
 
     private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
         @Override
@@ -70,6 +70,10 @@ public class CameraActivity extends Activity implements CameraBridgeViewBase.CvC
 
     public CameraActivity() {
         Log.i(TAG, "CameraActivity: Instantiate new" + this.getClass());
+    }
+
+    public void setLockPreview(boolean lock) {
+        lockPreview = lock;
     }
 
     @Override
@@ -210,16 +214,21 @@ public class CameraActivity extends Activity implements CameraBridgeViewBase.CvC
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        lockPreview = true;
+                        try {
+                            setLockPreview(true);
 
-                        // see results on main thread for UI
-                        notifyRecognitionResultsChanged();
+                            // see results on main thread for UI
+                            notifyRecognitionResultsChanged();
 
-                        // preview signs
-                        setRecognizedSignsPreviewOnLayout();
+                            // preview signs
+                            setRecognizedSignsPreviewOnLayout();
 
-                        // lock preview
-                        lockPreview = false;
+                            // lock preview
+                            setLockPreview(false);
+                        }
+                        catch (Exception e) {
+                            Log.e(TAG, "UI thread run: " + e.getMessage());
+                        }
                     }
                 });
             }
@@ -231,7 +240,9 @@ public class CameraActivity extends Activity implements CameraBridgeViewBase.CvC
     }
 
     private void notifyRecognitionResultsChanged() {
-        adapterResults.notifyDataSetChanged();
+        if(listOfResults.size() != 0) {
+            adapterResults.notifyDataSetChanged();
+        }
     }
 
     private void setRecognizedSignsPreviewOnLayout() {
