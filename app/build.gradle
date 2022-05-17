@@ -35,6 +35,7 @@ android {
     androidResources {
         noCompress 'lite'
     }
+    namespace 'com.example.trafficsignrecognitionandroidapp'
 }
 
 dependencies {

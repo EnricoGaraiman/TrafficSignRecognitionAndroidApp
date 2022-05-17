@@ -248,6 +248,7 @@ public class CameraActivity extends Activity implements CameraBridgeViewBase.CvC
     private void setRecognizedSignsPreviewOnLayout() {
         int imageResource;
         ImageView recognizedSign;
+        Drawable res;
         List<Integer> displayedSign = new ArrayList<>();
 
         // get first displayedRecognizedSignPreview recognized sign preview
@@ -257,7 +258,7 @@ public class CameraActivity extends Activity implements CameraBridgeViewBase.CvC
             if (c < displayedSignClass.size() && !displayedSign.contains(displayedSignClass.get(c))) {
                 // get image resource based on recognized class
                 imageResource = getResources().getIdentifier("@drawable/sign_class_" + displayedSignClass.get(c), null, getPackageName());
-                Drawable res = getResources().getDrawable(imageResource, null);
+                res = getResources().getDrawable(imageResource, null);
                 recognizedSign.setImageDrawable(res);
 
                 // add in array for remove duplicate
