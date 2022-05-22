@@ -32,7 +32,9 @@ import org.opencv.core.Mat;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 public class CameraActivity extends Activity implements CameraBridgeViewBase.CvCameraViewListener2 {
@@ -249,20 +251,19 @@ public class CameraActivity extends Activity implements CameraBridgeViewBase.CvC
         int imageResource;
         ImageView recognizedSign;
         Drawable res;
-        List<Integer> displayedSign = new ArrayList<>();
+
+        // remove duplicate
+        List<Integer> displayedSignClassSet = new ArrayList<>(new HashSet<>(displayedSignClass));
 
         // get first displayedRecognizedSignPreview recognized sign preview
         for (int c = 0; c < displayedRecognizedSignPreview; c++) {
             recognizedSign = (ImageView) tableRow.getChildAt(c);
 
-            if (c < displayedSignClass.size() && !displayedSign.contains(displayedSignClass.get(c))) {
+            if (c < displayedSignClassSet.size() && displayedSignClassSet.iterator().hasNext()) {
                 // get image resource based on recognized class
-                imageResource = getResources().getIdentifier("@drawable/sign_class_" + displayedSignClass.get(c), null, getPackageName());
+                imageResource = getResources().getIdentifier("@drawable/sign_class_" + displayedSignClassSet.get(c), null, getPackageName());
                 res = getResources().getDrawable(imageResource, null);
                 recognizedSign.setImageDrawable(res);
-
-                // add in array for remove duplicate
-                displayedSign.add(displayedSignClass.get(c));
             }
             else {
                 // remove preview image
