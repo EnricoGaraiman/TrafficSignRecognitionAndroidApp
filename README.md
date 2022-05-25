@@ -7,7 +7,7 @@ Within the application, you can use the following features:
 
 Project realized for the diploma thesis.
 
-Author: <b>Enrico Gărăiman</b> \n<br/>
+Author: <b>Enrico Gărăiman</b>
 Coordinators: <b>Radu</b> &amp; <b>Ioana Dogaru</b>
 
 Faculty of Electronics, Telecommunications and Information Technology • Polytechnic University of Bucharest • year 2022.
