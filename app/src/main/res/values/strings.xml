@@ -5,11 +5,13 @@
     <string name="select_a_image">Select image</string>
     <string name="image_view">Image view</string>
     <string name="traffic_sign_recognition">Traffic Sign Recognition</string>
-    <string name="descriere">\t\t\t\t Within the application you can use the following features:\n<br/>\n<br/>
+    <string name="descriere">Within the application, you can use the following features:\n<br/>
         • real time traffic signs detection and recognition using the device\'s camera;\n<br/>
         • choosing an image from the device storage space to detect and recognize traffic signs.\n<br/>\n<br/>
-        \t\t\t\t Project realized for the diploma thesis. Polytechnic University of Bucharest • Faculty of Electronics,
-        Telecommunications and Information Technology • year 2022.
+        Project realized for the diploma thesis. \n<br/>
+        Author: <b>Enrico Gărăiman</b> \n<br/>
+        Coordinators: <b>Radu</b> &amp; <b>Ioana Dogaru</b> \n<br/>\n<br/>
+        Faculty of Electronics, Telecommunications and Information Technology • Polytechnic University of Bucharest • year 2022.
     </string>
     <string name="copyright">Copyright © Enrico Gărăiman 2022 • All right reserved</string>
     <string name="title_activity_home">HomeActivity</string>
